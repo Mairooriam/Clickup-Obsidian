@@ -76,7 +76,6 @@ export class Parser {
         this.next();
       }
 
-
       if (!this.isToken(TokenType.TEXT)) {
         this.skipToNextLine();
         continue;
