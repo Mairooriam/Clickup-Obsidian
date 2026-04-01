@@ -33,11 +33,13 @@ export function testLexer(): void {
     \t- Task 1.1 [assignee:john] [status:pending]
     \t\t- Task 1.1.1 [type:bug] [urgent:true]
     - Task 2 [priority:low]
-    [] Task with checkbox [status:review] [assignee:jane]
-    `;
+    - [ ] uncompleted test [status:review] [assignee:jane]
+    - [x] completed test [status:review]
+`;
 
   const lexer = new Lexer(testInput);
   const tokens = lexer.tokenize();
+  console.log("Tesing Lexer.");
   console.log(tokens);
 
 }
@@ -48,7 +50,9 @@ export function testParser(): void {
     \t- Task 1.1 [assignee:john] [status:pending]
     \t\t- Task 1.1.1 [type:bug] [urgent:true]
     - Task 2 [priority:low]
-    [] Task with checkbox [status:review] [assignee:jane]
+    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+    - [x] Task with checkbox completed [status:review] [assignee:jane]
+
     `;
 
   const lexer = new Lexer(testInput);
@@ -56,10 +60,12 @@ export function testParser(): void {
   const parser = new Parser(tokens);
   // console.log(tokens);
   const tasks = parser.parse();
+  console.log("Testing Parser.");
   console.log(tasks);
 
 }
 
+testLexer();
 testParser();
 
 // // Default export for the main function

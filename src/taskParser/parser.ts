@@ -7,7 +7,6 @@ export class Parser {
   private tokens: Token[];
   private currentToken: Token;
   private currentIndex: number = 0;
-  private idCounter = 0;
 
   constructor(tokens: Token[]) {
     this.tokens = tokens;
@@ -47,7 +46,7 @@ export class Parser {
 
   parse(): Task[] {
     const allTasks: Task[] = [];
-    const stack: { task: Task; indentLevel: number }[] = [];
+    // const stack: { task: Task; indentLevel: number }[] = [];
     let idx = 0;
     while (!this.isToken(TokenType.EOF)) {
 
@@ -63,7 +62,7 @@ export class Parser {
         this.next();
       }
 
-      if (!this.isToken(TokenType.DASH, TokenType.CHECKBOX)) {
+      if (!this.isToken(TokenType.DASH, TokenType.CHECKBOX_EMPTY)) {
         this.skipToNextLine();
         idx = idx + 1;
         continue;
@@ -78,8 +77,6 @@ export class Parser {
       }
 
       allTasks.push(this.newTask(this.currentToken.value, indent, this.currentToken.flags));
-
-      // console.log("%d iteration, on parser: ", idx, this.tokens);
     }
 
     return allTasks;
