@@ -40,8 +40,8 @@ export class Lexer {
   }
 
   private advance(count: number = 1): void {
-	  for (let i = 0; i < count; i++) {
-    if (this.isAtEnd()) return;
+    for (let i = 0; i < count; i++) {
+      if (this.isAtEnd()) return;
 
       if (this.current() === '\n') {
         this.row++;
@@ -50,7 +50,7 @@ export class Lexer {
         this.col++;
 
       }
-	  this.position++;
+      this.position++;
     }
   }
 
@@ -120,14 +120,14 @@ export class Lexer {
           return { type: TokenType.DASH, value: '-', row: this.row, col: this.col };
         case '[':
           if (this.peek() === ' ' && this.peek(2) === ']') {
-            const token = { type: TokenType.CHECKBOX_EMPTY, value: '[ ]', row: this.row, col: this.col };
-            this.advance(3); 
+            this.advance(3);
+            const token = { type: TokenType.CHECKBOX_EMPTY, value: 'false', row: this.row, col: this.col };
             this.skipWhitespace();
             return token;
           }
           else if (this.peek() === 'x' && this.peek(2) === ']') {
-            const token = { type: TokenType.CHECKBOX_COMPLETED, value: '[x]', row: this.row, col: this.col };
-            this.advance(3); 
+            const token = { type: TokenType.CHECKBOX_COMPLETED, value: 'true', row: this.row, col: this.col };
+            this.advance(3);
             this.skipWhitespace();
             return token;
           }

@@ -46,13 +46,10 @@ export class Parser {
 
   parse(): Task[] {
     const allTasks: Task[] = [];
-    // const stack: { task: Task; indentLevel: number }[] = [];
-    let idx = 0;
     while (!this.isToken(TokenType.EOF)) {
 
       if (this.isToken(TokenType.NEWLINE)) {
         this.next();
-        idx = idx + 1;
         continue;
       }
 
@@ -62,17 +59,26 @@ export class Parser {
         this.next();
       }
 
-      if (!this.isToken(TokenType.DASH, TokenType.CHECKBOX_EMPTY)) {
+      if (!this.isToken(TokenType.DASH)) {
         this.skipToNextLine();
-        idx = idx + 1;
         continue;
       }
 
       this.next();
 
+      // TODO: placeholder. waiting for future checkbox support for completing the tasks
+      // let completed = false;
+      // if (this.isToken(TokenType.CHECKBOX_COMPLETED)) {
+      //   completed = true;
+      //
+      // }
+      if (this.isToken(TokenType.CHECKBOX_COMPLETED, TokenType.CHECKBOX_EMPTY)) {
+        this.next();
+      }
+
+
       if (!this.isToken(TokenType.TEXT)) {
         this.skipToNextLine();
-        idx = idx + 1;
         continue;
       }
 
