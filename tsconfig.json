@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "strictPropertyInitialization": true,
+    "strictBindCallApply": true,
+    "noImplicitOverride": true,
+    "outDir": "build",
+    "rootDir": "./src/taskParser",
+    "esModuleInterop": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true
+  },
+  "include": ["src/taskParser/**/*", "src/types.ts"]
+}
