@@ -1,7 +1,7 @@
 import type { Token } from "./lexer.js"
 import { TokenType } from "./lexer.js"
-import type { Task } from "./types.js"
-import { setTaskFlag } from "./types.js";
+import { Task } from "./types.js"
+import { taskSetFlag } from "./core.js";
 
 export class Parser {
   private tokens: Token[];
@@ -29,20 +29,6 @@ export class Parser {
     if (this.isToken(TokenType.NEWLINE)) this.next();
   }
 
-  private newTask(name: string, level: number, flags?: Record<string, string>): Task {
-    const task: Task = {
-      name,
-      level,
-    };
-
-    if (flags && Object.keys(flags).length > 0) {
-      for (const [flagName, flagValue] of Object.entries(flags)) {
-        setTaskFlag(task, flagName, flagValue);
-      }
-    }
-
-    return task;
-  }
 
   parse(): Task[] {
     const allTasks: Task[] = [];
@@ -81,7 +67,14 @@ export class Parser {
         continue;
       }
 
-      allTasks.push(this.newTask(this.currentToken.value, indent, this.currentToken.flags));
+    const task = new Task(this.currentToken.value, indent);
+      if (this.currentToken.flags) {
+        for (const [flagName, flagValue] of Object.entries(this.currentToken.flags)) {
+          taskSetFlag(task, flagName, flagValue);
+        }
+      }
+
+      allTasks.push(task);
     }
 
     return allTasks;

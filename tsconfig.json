@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "ESnext",
+    "lib": ["ESNext"],
     "module": "NodeNext",
     "moduleResolution": "nodenext",
     "strict": true,
@@ -18,5 +19,8 @@
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true
   },
-  "include": ["src/taskParser/**/*", "src/types.ts"]
+  "include": ["src/taskParser/**/*", "src/types.ts"],
+  "ts-node": {
+    "esm": true
+  }
 }

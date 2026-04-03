@@ -1,18 +1,14 @@
 import { Lexer } from "./lexer.js"
 import { Parser } from "./parser.js"
-// import { TaskIndexer } from "./taskIndex.js"
-// import type { TaskIndex } from "./taskIndex.js"
-import * as t from "./serialization.js"
 
-// export type { TaskIndex } from "./taskIndex.js"
-export { Lexer } from "./lexer.js"
-export { Parser } from "./parser.js"
-// export { TaskIndexer } from "./taskIndex.js"
 
+import { cacheRemoveNonPlaceholderIds, resolveParents, cacheCollectRoots } from "./core.js"
 export * from "./serialization.js"
 //TODO: switch to lodash-es
 import lodash from "lodash";
+import { tasksToString, type TaskCache } from "./types.js";
 const { isEqual } = lodash;
+import { inspect } from "util";
 // export function parseTaskList(input: string): TaskIndex {
 //     const lexer = new Lexer(input);
 //     const parser = new Parser(lexer.tokenize());
@@ -65,8 +61,96 @@ export function testParser(): void {
 
 }
 
+export function testIndex(): void {
+  const testInput = `
+    - Task 1 [id:abc123] [priority:high]
+    \t- Task 1.1 [assignee:john] [status:pending]
+    \t\t- Task 1.1.1 [type:bug] [urgent:true]
+    - Task 2 [priority:low]
+    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+    - [x] Task with checkbox completed [status:review] [assignee:jane]
+
+    `;
+
+  const lexer = new Lexer(testInput);
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens);
+  // console.log(tokens);
+  const tasks = parser.parse();
+  resolveParents(tasks);
+  console.log("after indexing\n", tasks);
+}
+
+export function testToString(): void {
+  const testInput = `
+    - Task 1 [id:abc123] [priority:high]
+    \t- Task 1.1 [assignee:john] [status:pending]
+    \t\t- Task 1.1.1 [type:bug] [urgent:true]
+    - Task 2 [priority:low]
+    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+    - [x] Task with checkbox completed [status:review] [assignee:jane]
+
+    `;
+
+  const lexer = new Lexer(testInput);
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens);
+  // console.log(tokens);
+  const tasks = parser.parse();
+  resolveParents(tasks);
+  console.log("after toString\n\n", tasksToString(tasks));
+}
+export function testCollectRoots(): void {
+  const testInput = `
+    - Task 1 [id:abc123] [priority:high]
+    \t- Task 1.1 [assignee:john] [status:pending]
+    \t\t- Task 1.1.1 [type:bug] [urgent:true]
+    - Task 2 [priority:low]
+    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+    - [x] Task with checkbox completed [status:review] [assignee:jane]
+
+    `;
+
+  const lexer = new Lexer(testInput);
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens);
+  // console.log(tokens);
+  const tasks = parser.parse();
+  resolveParents(tasks);
+  const cache: TaskCache = { rootNodes: [] };
+
+  console.log("after collectRoots\n\n rootNodesCount:%d\n", cacheCollectRoots(cache, tasks));
+  console.log(inspect(cache, { depth: null, colors: true }));
+}
+
+
+export function testRemoveNonPlaceholder() {
+  const testInput = `
+    - Task 1 [id:abc123] [priority:high]
+    \t- Task 1.1 [assignee:john] [status:pending]
+    \t\t- Task 1.1.1 [type:bug] [urgent:true]
+    - Task 2 [priority:low]
+    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+    - [x] Task with checkbox completed [status:review] [assignee:jane]
+
+    `;
+
+  const lexer = new Lexer(testInput);
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens);
+  // console.log(tokens);
+  const tasks = parser.parse();
+  resolveParents(tasks);
+  const cache: TaskCache = { rootNodes: [] };
+  cacheCollectRoots(cache, tasks);
+  cacheRemoveNonPlaceholderIds(cache);
+  console.log(inspect(cache, { depth: null, colors: true }));
+}
+
 testLexer();
 testParser();
+testIndex();
+testToString();
+testCollectRoots();
+testRemoveNonPlaceholder();
 
-// // Default export for the main function
-// export default parseTaskList;

@@ -1,36 +1,48 @@
-export interface TaskFlags {
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  status?: 'todo' | 'in-progress' | 'done' | 'blocked';
-  assignee?: string;
-  dueDate?: Date;
-  tags?: string[];
-  estimate?: number;
+export const SUPPORTED_FLAGS = new Set(['id', 'parent']);
 
-  // Allow custom flags
+export class TaskFlags {
+  private readonly _brand = "TaskFlags";
+  parent?: string;
+  id?: string;
+
   [key: string]: any;
+  toString(): string {
+    return Object.entries(this)
+      .map(([key, value]) => `[${key}:${value}]`)
+      .join(", ");
+  }
 }
 
-export interface Task {
+export class Task {
+  private readonly _brand = "Task";
   name: string;
   level: number;
   flags?: TaskFlags;
+
+  constructor(name: string, level: number, flags?: TaskFlags) {
+    this.name = name;
+    this.level = level;
+    this.flags = flags;
+  }
+
+  toString(): string {
+    const base = '\t'.repeat(this.level) + `- ${this.name}`;
+    const flagsString = this.flags ? ` ${this.flags.toString()}` : "";
+    return base + flagsString;
+  }
 }
 
-const SUPPORTED_FLAGS = new Set(['id', 'parent']);
-
-export function setTaskFlag(task: Task, flagName: string, value: any, allowCustomFlags: boolean = false): void {
-  if (!allowCustomFlags && !SUPPORTED_FLAGS.has(flagName)) {
-    return;
+export function tasksToString(tasks: Task[]): string {
+  let result = "";
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
+    result += task.toString() + "\n";
   }
-
-  if (!task.flags) {
-    task.flags = {};
-  }
-
-  //TODO: add type validation
-  if (!SUPPORTED_FLAGS.has(flagName)) {
-    console.log(`Custom flag added: "${flagName}" with value:`, value);
-  }
-
-  task.flags[flagName] = value;
+  return result
 }
+
+export interface TaskCache {
+  rootNodes: Task[];
+}
+
+
