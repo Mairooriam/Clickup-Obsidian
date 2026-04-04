@@ -1,7 +1,6 @@
-import { ClickUpResponse_GetTasks } from "./clickuptypes.js";
-import { ClickupResponse_GetTeams, ClickupResponse_GetSpaces } from "./apiTypes/index.js";
+import { ClickupResponse_GetTeams, ClickupResponse_GetSpaces, ClickupResponse_GetFolders, ClickupResponse_GetTasks } from "./apiTypes/index.js";
 
-interface GetTasksOptions {
+export interface GetTasksOptions {
   order_by?: "id" | "created" | "updated" | "due_date"; // Order by specific fields
   reverse?: boolean; // Reverse the order
   subtasks?: boolean; // Include or exclude subtasks
@@ -145,10 +144,10 @@ export class ApiService {
     return spaces
   }
 
-  public async getFolders(space_id: string) {
+  public async getFolders(space_id: string): Promise<ClickupResponse_GetFolders> {
     const response = await this.fetcher(`space/${space_id}/folder`);
-    const data = await response.json;
-    return data.folders;
+    const folders = await response.json as ClickupResponse_GetFolders;
+    return folders;
   }
 
   public async getList(folder_id: string) {
@@ -163,12 +162,41 @@ export class ApiService {
     return data.lists;
   }
 
-  public async getTasks(list_id: string, options?: GetTasksOptions): Promise<ClickUpResponse_GetTasks[]> {
+  public async getTasks(list_id: string, options?: GetTasksOptions): Promise<ClickupResponse_GetTasks> {
     const queryString = this.buildQueryParams(options);
     const url = `list/${list_id}/task?${queryString}`;
     const response = await this.fetcher(url);
-    const data = response.json;
-    return data.tasks as ClickUpResponse_GetTasks[];
+    const tasks = response.json as ClickupResponse_GetTasks;
+    for (let i = 0; i < tasks.tasks.length; i++) {
+      const task = tasks.tasks[i];
+      //NOTE: if you need data from features or statuses add them
+      // add mapping function in future? TaskSLims etc.
+  // return {
+  //   id: task.id,
+  //   name: task.name,
+      delete task.custom_id;
+      delete task.custom_item_id;
+      delete task.description;
+      delete task.status;
+      delete task.orderindex;
+      delete task.date_created;
+      delete task.date_closed;
+      delete task.date_done;
+      delete task.date_updated;
+      delete task.archived;
+      delete task.creator;
+      delete task.watchers;
+      delete task.checklists;
+      delete task.tags;
+      delete task.points;
+      delete task.custom_fields;
+      delete task.dependencies;
+      delete task.linked_tasks;
+      delete task.locations;
+      delete task.sharing;
+      delete task.permission_level;
+    }
+    return tasks;
   }
 
   // public async getClickupLists(folderId: string): Promise<TAllLists[]> {

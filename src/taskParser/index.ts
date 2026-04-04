@@ -10,7 +10,7 @@ import { tasksToString, type TaskCache } from "./types.js";
 const { isEqual } = lodash;
 import { inspect } from "util";
 import { readFile } from "fs/promises";
-import { ApiService } from "./ApiService.js";
+import { ApiService, GetTasksOptions } from "./ApiService.js";
 // export function parseTaskList(input: string): TaskIndex {
 //     const lexer = new Lexer(input);
 //     const parser = new Parser(lexer.tokenize());
@@ -160,6 +160,17 @@ export async function testClickupAPI() {
   const teamId = teams.teams[0].id;
   const spaces = await api.getSpaces(teamId);
   console.log("Spaces \n\n", inspect(spaces, { depth: null, colors: true }));
+  const spaceId = spaces.spaces[0].id;
+  console.log(spaceId);
+  const folders = await api.getFolders(spaceId)
+  console.log(folders.folders[0].lists);
+
+  let options: GetTasksOptions = {};
+  options.subtasks = true;
+  const tasks = await api.getTasks("901522227733", options);
+  console.log(tasks);
+  console.log(tasks.last_page);
+
 
 
 

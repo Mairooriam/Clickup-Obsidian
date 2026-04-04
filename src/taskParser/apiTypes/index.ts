@@ -1,2 +1,4 @@
 export * from "./getTeams.js";
 export * from "./getSpaces.js"
+export * from "./getTasks.js"
+export * from "./getFolders.js"
