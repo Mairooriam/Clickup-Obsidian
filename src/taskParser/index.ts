@@ -9,6 +9,8 @@ import lodash from "lodash";
 import { tasksToString, type TaskCache } from "./types.js";
 const { isEqual } = lodash;
 import { inspect } from "util";
+import { readFile } from "fs/promises";
+import { ApiService } from "./ApiService.js";
 // export function parseTaskList(input: string): TaskIndex {
 //     const lexer = new Lexer(input);
 //     const parser = new Parser(lexer.tokenize());
@@ -147,10 +149,27 @@ export function testRemoveNonPlaceholder() {
   console.log(inspect(cache, { depth: null, colors: true }));
 }
 
+
+
+export async function testClickupAPI() {
+  const apiKey = await readFile("testApiKey", 'utf8');
+  let api = ApiService.getInstance(apiKey);
+  const teams = await api.getTeams();
+  console.log("ClickupAPI\n\n ");
+  console.log(inspect(teams, { depth: null, colors: true }));
+  const teamId = teams.teams[0].id;
+  const spaces = await api.getSpaces(teamId);
+  console.log("Spaces \n\n", inspect(spaces, { depth: null, colors: true }));
+
+
+
+}
+
 testLexer();
 testParser();
 testIndex();
 testToString();
 testCollectRoots();
 testRemoveNonPlaceholder();
+testClickupAPI();
 
