@@ -49,6 +49,20 @@ export function taskGetFlag(task: Task, flagName: string): string {
   return "";
 }
 
+// tells whether two tasks are the same
+export function taskMatch(t1: Task, t2: Task): boolean {
+  if (t1.name !== t2.name) return false;
+  if (!t1.flags || !t2.flags) return t1.flags === t2.flags;
+
+  for (const [key, val] of Object.entries(t1.flags)) {
+    if (key === "_brand") continue;
+    if (t2.flags[key] !== val) return false;
+  }
+
+  return true;
+}
+
+
 export function taskHasPlaceholderId(task: Task): boolean {
   const id = task.flags?.id;
   if (id) {
@@ -184,3 +198,26 @@ export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
 }
 
 
+export interface cacheMatchResult {
+  match: boolean;
+  differing: Task[];
+}
+
+export function cacheMatch(local: TaskCache, remote: TaskCache): cacheMatchResult {
+  const result: cacheMatchResult = { match: true, differing: [] };
+
+  if (local.roots.length !== remote.roots.length) {
+    result.match = false;
+  }
+
+  for (const localRoot of local.roots) {
+    const id = localRoot.flags?.id;
+    if (!id) throw new Error("cacheMatch: Local root task missing id. Maybe you forgot to");
+    const remoteRoot = remote.map.get(id);
+    if (!remoteRoot || !taskMatch(localRoot, remoteRoot)) {
+      result.match = false;
+      result.differing.push(localRoot);
+    }
+  }
+  return result;
+}

@@ -2,9 +2,9 @@ import { Lexer } from "./lexer.js"
 import { Parser } from "./parser.js"
 
 
-import { tasksResolveParents, taskMapClickupResponses, cacheBuildTaskCache, cacheBuildString } from "./core.js"
+import { tasksResolveParents, taskMapClickupResponses, cacheBuildTaskCache, cacheBuildString, taskMatch, cacheMatch } from "./core.js"
 export * from "./serialization.js"
-//TODO: switch to lodash-es
+//skTODO: switch to lodash-es
 import lodash from "lodash";
 import { tasksToString, type TaskCache } from "./types.js";
 const { isEqual } = lodash;
@@ -186,7 +186,6 @@ export async function testMapClickupResponseToTasks(): Promise<Task[]> {
 }
 
 export function testCache(tasks: Task[]): void {
-
   let taskCache = cacheBuildTaskCache(tasks);
 
   console.log("testCache\n\n", taskCache);
@@ -216,6 +215,44 @@ export function testCacheFromUserMd() {
 
 }
 
+
+export function testDiffChecker() {
+  const local_input = `
+    - Task 1 [id:abc123] [priority:high]
+    \t- Task 1.1 [id:abc124] [assignee:john] [status:pending]
+    - Task 2
+    \t- Task 2.2
+    `;
+  const remote_input = `
+    - Task 1 [id:abc123] [priority:high]
+    \t- Task 1.1 [id:abc124] [assignee:john] [status:pending]
+    `;
+
+  const local_lexer = new Lexer(local_input);
+  const remote_lexer = new Lexer(remote_input);
+  const local_tokens = local_lexer.tokenize();
+  const remote_tokens = remote_lexer.tokenize();
+
+  const local_parser = new Parser(local_tokens);
+  const remote_parser = new Parser(remote_tokens);
+
+  // console.log(tokens);
+  let local_tasks = local_parser.parse();
+  tasksResolveParents(local_tasks);
+
+
+  const remote_tasks = remote_parser.parse();
+
+
+
+  let local_cache = cacheBuildTaskCache(local_tasks);
+  let remote_cache = cacheBuildTaskCache(remote_tasks);
+
+  console.log("Compare result\n\n", taskMatch(local_cache.roots[0], remote_cache.roots[0])
+  )
+  console.log("Compare caches\n\n", inspect(cacheMatch(local_cache, remote_cache), false, null));
+
+}
 // testLexer();
 // testParser();
 // testIndex();
@@ -226,4 +263,5 @@ export function testCacheFromUserMd() {
 // testMapClickupResponseToTasks();
 testCache(await testMapClickupResponseToTasks())
 // testCacheFromUserMd();
+testDiffChecker();
 
