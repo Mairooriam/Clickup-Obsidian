@@ -176,7 +176,8 @@ export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
   for (const task of tasks) {
     const parentId = task.flags?.parent;
 
-    if (!parentId) {
+    //TODO: improve null checking or make higher level change to not string null
+    if (!parentId || parentId === "null") {
       roots.push(task);
     } else {
       if (!children.has(parentId)) {
@@ -200,24 +201,43 @@ export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
 
 export interface cacheMatchResult {
   match: boolean;
-  differing: Task[];
+  differing: {
+    local: Task[];
+    remote: Task[];
+  };
 }
 
 export function cacheMatch(local: TaskCache, remote: TaskCache): cacheMatchResult {
-  const result: cacheMatchResult = { match: true, differing: [] };
+  const result: cacheMatchResult = { match: true, differing: { local: [], remote: [] } };
 
   if (local.roots.length !== remote.roots.length) {
     result.match = false;
   }
 
-  for (const localRoot of local.roots) {
-    const id = localRoot.flags?.id;
-    if (!id) throw new Error("cacheMatch: Local root task missing id. Maybe you forgot to");
-    const remoteRoot = remote.map.get(id);
-    if (!remoteRoot || !taskMatch(localRoot, remoteRoot)) {
+  const compareNode = (localTask: Task): void => {
+    const id = localTask.flags?.id;
+    if (!id) throw new Error("cacheMatch: Local task missing id.");
+    const remoteTask = remote.map.get(id);
+    if (!remoteTask || !taskMatch(localTask, remoteTask)) {
       result.match = false;
-      result.differing.push(localRoot);
+      result.differing.local.push(localTask);
+      if (remoteTask) result.differing.remote.push(remoteTask);
+      // Remote doesn't know about this task at all, so all its children are new too
+      if (!remoteTask) {
+        local.children.get(id)?.forEach(child => collectAll(child));
+        return;
+      }
     }
-  }
+    // Either matched or differed but exists remotely — still recurse children
+    local.children.get(id)?.forEach(compareNode);
+  };
+
+  const collectAll = (task: Task): void => {
+    result.differing.local.push(task);
+    local.children.get(task.flags?.id ?? "")?.forEach(collectAll);
+  };
+
+  local.roots.forEach(compareNode);
+
   return result;
 }

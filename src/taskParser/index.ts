@@ -218,15 +218,19 @@ export function testCacheFromUserMd() {
 
 export function testDiffChecker() {
   const local_input = `
-    - Task 1 [id:abc123] [priority:high]
-    \t- Task 1.1 [id:abc124] [assignee:john] [status:pending]
-    - Task 2
-    \t- Task 2.2
+  - Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]
+  \t- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]
+  - Task 1 [_brand:TaskFlags] [parent:null] [id:86c8we387] [top_level_parnet:null]
+  \t- Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]
+  - Task 3
+  \t- Task 3.3
     `;
   const remote_input = `
-    - Task 1 [id:abc123] [priority:high]
-    \t- Task 1.1 [id:abc124] [assignee:john] [status:pending]
-    `;
+  - Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]
+  \t- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]
+  - Task 1 [_brand:TaskFlags] [parent:null] [id:86c8we387] [top_level_parnet:null]
+  \t- Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]
+  `;
 
   const local_lexer = new Lexer(local_input);
   const remote_lexer = new Lexer(remote_input);
@@ -239,11 +243,7 @@ export function testDiffChecker() {
   // console.log(tokens);
   let local_tasks = local_parser.parse();
   tasksResolveParents(local_tasks);
-
-
   const remote_tasks = remote_parser.parse();
-
-
 
   let local_cache = cacheBuildTaskCache(local_tasks);
   let remote_cache = cacheBuildTaskCache(remote_tasks);
@@ -257,11 +257,9 @@ export function testDiffChecker() {
 // testParser();
 // testIndex();
 // testToString();
-// testCollectRoots();
-// testRemoveNonPlaceholder();
-// testClickupAPI();
-// testMapClickupResponseToTasks();
+testClickupAPI();
+testMapClickupResponseToTasks();
 testCache(await testMapClickupResponseToTasks())
-// testCacheFromUserMd();
+testCacheFromUserMd();
 testDiffChecker();
 

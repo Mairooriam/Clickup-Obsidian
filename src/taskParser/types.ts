@@ -11,7 +11,7 @@ export class TaskFlags {
   toString(): string {
     return Object.entries(this)
       .map(([key, value]) => `[${key}:${value}]`)
-      .join(", ");
+      .join(" ");
   }
 }
 
@@ -44,8 +44,8 @@ export function tasksToString(tasks: Task[]): string {
 }
 
 export interface TaskCache {
-  map: Map<string,Task>;
-  children: Map<string,Task[]>;
+  map: Map<string, Task>;
+  children: Map<string, Task[]>;
   roots: Task[];
 }
 
