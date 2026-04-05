@@ -1,10 +1,12 @@
 import { Status } from "./shared.js"
+
+
 export interface ClickupResponse_GetTasks {
-  tasks: Task[];
+  tasks: clickup_Task[];
   last_page: boolean;
 }
 
-export interface Task {
+export interface clickup_Task {
   id: string;
   custom_id?: string;
   custom_item_id?: number;
@@ -18,10 +20,10 @@ export interface Task {
   date_closed?: string;
   date_done?: string;
   archived?: boolean;
-  creator?: Creator;
+  creator?: clickup_Creator;
   assignees: any[];
   group_assignees: any[];
-  watchers?: Creator[];
+  watchers?: clickup_Creator[];
   checklists?: any[];
   tags?: any[];
   parent: string;
@@ -37,15 +39,15 @@ export interface Task {
   locations?: any[];
   team_id: string;
   url: string;
-  sharing?: Sharing;
+  sharing?: clickup_Sharing;
   permission_level?: string;
-  list: FolderInfo;
-  project: FolderInfo;
-  folder: FolderInfo;
+  list: clickup_FolderInfo;
+  project: clickup_FolderInfo;
+  folder: clickup_FolderInfo;
   spaceId: string;
 }
 
-export interface Creator {
+export interface clickup_Creator {
   id: number;
   username: string;
   color: string;
@@ -54,14 +56,14 @@ export interface Creator {
   initials?: string;
 }
 
-export interface FolderInfo {
+export interface clickup_FolderInfo {
   id: string;
   name: string;
   hidden?: boolean;
   access: boolean;
 }
 
-export interface Sharing {
+export interface clickup_Sharing {
   public: boolean;
   public_share_expires_on: string;
   public_fields: string[];

@@ -1,9 +1,11 @@
-export const SUPPORTED_FLAGS = new Set(['id', 'parent']);
+export const SUPPORTED_FLAGS = new Set(['id', 'parent', "top_level_parent"]);
 
 export class TaskFlags {
   private readonly _brand = "TaskFlags";
   parent?: string;
   id?: string;
+  top_level_parnet?: string;
+
 
   [key: string]: any;
   toString(): string {
@@ -42,7 +44,9 @@ export function tasksToString(tasks: Task[]): string {
 }
 
 export interface TaskCache {
-  rootNodes: Task[];
+  map: Map<string,Task>;
+  children: Map<string,Task[]>;
+  roots: Task[];
 }
 
 
