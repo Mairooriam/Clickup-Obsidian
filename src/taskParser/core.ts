@@ -96,6 +96,8 @@ export function taskMapClickupResponses(clickup_tasks: clickup_Task[]): Task[] {
 }
 
 
+
+
 export function tasksResolveParents(tasks: Task[]): void {
   const idPrefix = "placeholder_";
   let idx = 0;
@@ -129,25 +131,6 @@ export function tasksResolveParents(tasks: Task[]): void {
     lastTask = currentTask;
   }
 }
-
-// export function cacheCollectRoots(cache: TaskCache, tasks: Task[]): number {
-//   let rootCount = 0;
-//   for (let i = 0; i < tasks.length; i++) {
-//     const task = tasks[i];
-//     const parentVal = task.flags?.parent;
-//     if (parentVal === undefined) {
-//       cache.rootNodes.push(task);
-//       rootCount++;
-//     }
-//   }
-//   return rootCount;
-// }
-
-// export function cacheRemoveNonPlaceholderIds(cache: TaskCache): number {
-//   const before = cache.rootNodes.length;
-//   cache.rootNodes = cache.rootNodes.filter(task => taskHasPlaceholderId(task));
-//   return before - cache.rootNodes.length;
-// }
 export function cacheBuildString(cache: TaskCache): string {
   const lines: string[] = [];
 
@@ -162,14 +145,12 @@ export function cacheBuildString(cache: TaskCache): string {
 }
 
 export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
-  const map = new Map<string, Task>();
-  const children = new Map<string, Task[]>();
-  const roots: Task[] = [];
+  const result = new TaskCache();
 
   // Push tasks into map
   for (const task of tasks) {
     const id = task.flags?.id;
-    if (id) map.set(id, task);
+    if (id) result.map.set(id, task);
   }
 
   // Resolve parents
@@ -178,24 +159,24 @@ export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
 
     //TODO: improve null checking or make higher level change to not string null
     if (!parentId || parentId === "null") {
-      roots.push(task);
+      result.roots.push(task);
     } else {
-      if (!children.has(parentId)) {
-        children.set(parentId, []);
+      if (!result.children.has(parentId)) {
+        result.children.set(parentId, []);
       }
-      children.get(parentId)!.push(task);
+      result.children.get(parentId)!.push(task);
     }
   }
 
   // Resolve indent recursively
   const visitChild = (task: Task, indent: number): void => {
     task.level = indent;
-    children.get(task.flags?.id ?? "")?.forEach(child => visitChild(child, indent + 1));
+    result.children.get(task.flags?.id ?? "")?.forEach((child: Task) => visitChild(child, indent + 1));
   };
 
-  roots.forEach(root => visitChild(root, 0));
+   result.roots.forEach((root: Task) => visitChild(root, 0));
 
-  return { map, roots, children };
+  return result;
 }
 
 

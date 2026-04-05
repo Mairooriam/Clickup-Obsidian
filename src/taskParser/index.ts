@@ -253,13 +253,55 @@ export function testDiffChecker() {
   console.log("Compare caches\n\n", inspect(cacheMatch(local_cache, remote_cache), false, null));
 
 }
+
+export function cacheCreateFromMd(md: string): TaskCache {
+  const lexer = new Lexer(md);
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens);
+  const tasks = parser.parse();
+  tasksResolveParents(tasks);
+  return cacheBuildTaskCache(tasks);
+}
+
+export async function testWorkFlow() {
+  // get user spaces, teams, folders, etc.
+  const apiKey = await readFile("testApiKey", 'utf8');
+  let api = ApiService.getInstance(apiKey);
+  const teams = await api.getTeams();
+  const teamId = teams.teams[0].id;
+  const spaces = await api.getSpaces(teamId);
+  const spaceId = spaces.spaces[0].id;
+  const folders = await api.getFolders(spaceId)
+  const folder = folders.folders.find((f: any) => f.name === "Projects");
+  if (!folder) throw new Error("Folder not found");
+  console.log("Found folder:", folder);
+  console.log("Lists in folder:", folder.lists);
+  const list = folder.lists.find((f: any) => f.name === "API_test_lista");
+  if (!list) throw new Error("list not found");
+  console.log("Found list: name:%s id:%s", list.name, list.id);
+
+  // fetch remote
+  let options: GetTasksOptions = {};
+  options.subtasks = true;
+  const _tasks = await api.getTasks(list.id, options);
+  let tasks = taskMapClickupResponses(_tasks.tasks);
+  let cache = cacheBuildTaskCache(tasks);
+  console.log("Cache fetched", inspect(cache, false, null));
+  // Edit locally
+  // Get Diff
+  // Push diff
+
+}
+
+
 // testLexer();
 // testParser();
 // testIndex();
 // testToString();
-testClickupAPI();
-testMapClickupResponseToTasks();
-testCache(await testMapClickupResponseToTasks())
-testCacheFromUserMd();
-testDiffChecker();
+// testClickupAPI();
+// testMapClickupResponseToTasks();
+// testCache(await testMapClickupResponseToTasks())
+// testCacheFromUserMd();
+// testDiffChecker();
+testWorkFlow();
 

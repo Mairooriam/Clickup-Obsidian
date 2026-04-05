@@ -43,10 +43,9 @@ export function tasksToString(tasks: Task[]): string {
   return result
 }
 
-export interface TaskCache {
-  map: Map<string, Task>;
-  children: Map<string, Task[]>;
-  roots: Task[];
+export class TaskCache {
+  map: Map<string, Task> = new Map();
+  children: Map<string, Task[]> = new Map();
+  roots: Task[] = [];
 }
-
 
