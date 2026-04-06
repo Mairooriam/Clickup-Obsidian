@@ -1,15 +1,16 @@
 import { Lexer } from "./lexer.js"
 import { Parser } from "./parser.js"
+import { readFile, writeFile } from "fs/promises";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
-
-import { tasksResolveParents, taskMapClickupResponses, cacheBuildTaskCache, cacheBuildString, taskMatch, cacheMatch } from "./core.js"
+import { tasksResolveParents, taskMapClickupResponses, cacheBuildTaskCache, taskMatch, cacheMatch } from "./core.js"
 export * from "./serialization.js"
 //skTODO: switch to lodash-es
 import lodash from "lodash";
 import { tasksToString, type TaskCache } from "./types.js";
 const { isEqual } = lodash;
 import { inspect } from "util";
-import { readFile } from "fs/promises";
 import { ApiService, GetTasksOptions } from "./ApiService.js";
 import { Task } from "./types.js"
 
@@ -33,13 +34,15 @@ export function testLexer(): void {
 
 export function testParser(): void {
   const testInput = `
-    - Task 1 [id:abc123] [priority:high]
-    \t- Task 1.1 [assignee:john] [status:pending]
-    \t\t- Task 1.1.1 [type:bug] [urgent:true]
-    - Task 2 [priority:low]
-    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
-    - [x] Task with checkbox completed [status:review] [assignee:jane]
-
+- Task 1 [id:abc123] [priority:high]
+\t- Task 1.1 [assignee:john] [status:pending]
+\t- Task2 1.1
+\t\t- Task 1.1.1 [type:bug] [urgent:true]
+- Task 2 [priority:low]
+\t- Task 2.2
+\t- Task2 2.2
+- [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+- [x] Task with checkbox completed [status:review] [assignee:jane]
     `;
 
   const lexer = new Lexer(testInput);
@@ -48,19 +51,21 @@ export function testParser(): void {
   // console.log(tokens);
   const tasks = parser.parse();
   console.log("Testing Parser.");
-  console.log(tasks);
+  console.log(tasksToString(tasks));
 
 }
 
-export function testIndex(): void {
+export function testResolveParents(): void {
   const testInput = `
-    - Task 1 [id:abc123] [priority:high]
-    \t- Task 1.1 [assignee:john] [status:pending]
-    \t\t- Task 1.1.1 [type:bug] [urgent:true]
-    - Task 2 [priority:low]
-    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
-    - [x] Task with checkbox completed [status:review] [assignee:jane]
-
+- Task 1 [id:abc123] [priority:high]
+\t- Task 1.1 [assignee:john] [status:pending]
+\t- Task2 1.1
+\t\t- Task 1.1.1 [type:bug] [urgent:true]
+- Task 2 [priority:low]
+\t- Task 2.2
+\t- Task2 2.2
+- [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+- [x] Task with checkbox completed [status:review] [assignee:jane]
     `;
 
   const lexer = new Lexer(testInput);
@@ -69,7 +74,7 @@ export function testIndex(): void {
   // console.log(tokens);
   const tasks = parser.parse();
   tasksResolveParents(tasks);
-  console.log("after indexing\n", tasks);
+  console.log("after indexing\n", tasksToString(tasks));
 }
 
 export function testToString(): void {
@@ -189,7 +194,7 @@ export function testCache(tasks: Task[]): void {
   let taskCache = cacheBuildTaskCache(tasks);
 
   console.log("testCache\n\n", taskCache);
-  console.log("testCache User input\n\n", cacheBuildString(taskCache));
+  console.log("testCache User input\n\n", taskCache.toString());
 }
 
 export function testCacheFromUserMd() {
@@ -280,28 +285,40 @@ export async function testWorkFlow() {
   if (!list) throw new Error("list not found");
   console.log("Found list: name:%s id:%s", list.name, list.id);
 
-  // fetch remote
+  // fetch remote "becomes local"
   let options: GetTasksOptions = {};
   options.subtasks = true;
   const _tasks = await api.getTasks(list.id, options);
   let tasks = taskMapClickupResponses(_tasks.tasks);
-  let cache = cacheBuildTaskCache(tasks);
-  console.log("Cache fetched", inspect(cache, false, null));
+  let local = cacheBuildTaskCache(tasks);
+  const cacheString = local.toString();
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  // const now = new Date();
+  // const timestampForFile = now.toISOString().replace(/[:.]/g, "-");
+  // const filePath = resolve(__dirname, `cache_${timestampForFile}.md`);
+  // const timestampHeader = `# Cache generated at: ${now.toISOString()}\n\n`;
+  // await writeFile(filePath, timestampHeader + cacheString, "utf8");
+  // console.log("Cache saved to cache.md");
+
   // Edit locally
+
+  const localChange = await readFile(__dirname + "/cache.md", "utf8");
+  const local_cache = cacheCreateFromMd(localChange);
+  console.log(local_cache.toString());
   // Get Diff
   // Push diff
 
 }
 
-
+//
 // testLexer();
-// testParser();
-// testIndex();
+testParser();
+testResolveParents();
 // testToString();
 // testClickupAPI();
 // testMapClickupResponseToTasks();
 // testCache(await testMapClickupResponseToTasks())
 // testCacheFromUserMd();
 // testDiffChecker();
-testWorkFlow();
+// testWorkFlow();
 

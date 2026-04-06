@@ -1,5 +1,6 @@
-import { Task, SUPPORTED_FLAGS, TaskFlags, TaskCache } from "./types.js"
+import { Task, SUPPORTED_FLAGS, TaskFlags, TaskCache, Stack } from "./types.js"
 import { clickup_Task } from "./apiTypes/index.js"
+
 
 
 export function taskSetFlag(task: Task, flagName: string, value: any, allowCustomFlags: boolean = false): void {
@@ -119,30 +120,55 @@ export function tasksResolveParents(tasks: Task[]): void {
       continue;
     }
 
-    let validParent: boolean = ((currentTask.level - lastIndent) == 1)
-    // console.log("validParent b:%b, curL:  LL:", validParent, currentTask.level, lastIndent);
-    if (validParent) {
+    let stack = new Stack<Task>();
 
-      let id = taskGetFlag(lastTask, "id");
-      taskSetFlag(currentTask, "parent", id);
+    for (const task of tasks) {
+
+      while (stack.top() && stack.top()!.level >= task.level) {
+        stack.pop();
+      }
+
+      if (!stack.empty()) {
+        let parentId = taskGetFlag(stack.top()!, "id");
+        taskSetFlag(task, "parent", parentId);
+      }
+      stack.push(task);
     }
 
     lastIndent = currentTask.level;
     lastTask = currentTask;
   }
 }
-export function cacheBuildString(cache: TaskCache): string {
-  const lines: string[] = [];
 
-  const visit = (task: Task): void => {
-    lines.push(task.toString());
-    cache.children.get(task.flags?.id ?? "")?.forEach(visit);
-  };
 
-  cache.roots.forEach(visit);
 
-  return lines.join("\n");
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// for (const task of tasks) {
+//   // Remove tasks from stack until we find the parent
+//   while (stack.length > 0 && stack[stack.length - 1].level >= task.level) {
+//     stack.pop();
+//   }
+//   // If there's a parent on the stack, assign it
+//   if (stack.length > 0) {
+//     let parentId = taskGetFlag(stack[stack.length - 1], "id");
+//     taskSetFlag(task, "parent", parentId);
+//   }
+//   stack.push(task);
+// }
 
 export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
   const result = new TaskCache();
@@ -174,7 +200,7 @@ export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
     result.children.get(task.flags?.id ?? "")?.forEach((child: Task) => visitChild(child, indent + 1));
   };
 
-   result.roots.forEach((root: Task) => visitChild(root, 0));
+  result.roots.forEach((root: Task) => visitChild(root, 0));
 
   return result;
 }

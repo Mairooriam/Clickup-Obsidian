@@ -47,5 +47,45 @@ export class TaskCache {
   map: Map<string, Task> = new Map();
   children: Map<string, Task[]> = new Map();
   roots: Task[] = [];
+
+  toString(): string {
+    const lines: string[] = [];
+
+    const visit = (task: Task): void => {
+      lines.push(task.toString());
+      this.children.get(task.flags?.id ?? "")?.forEach(visit);
+    };
+
+    this.roots.forEach(visit);
+
+    return lines.join("\n");
+  }
 }
 
+export class Stack<T> {
+  private stack: T[] = []
+
+  top(): T | undefined {
+    return this.stack.length > 0 ? this.stack[this.stack.length - 1] : undefined;
+  }
+
+  size(): number {
+    return this.stack.length;
+  }
+
+  pop(): T | undefined {
+    return this.stack.pop();
+  }
+
+  push(item: T): void {
+    this.stack.push(item);
+  }
+
+  empty(): boolean {
+    return this.stack.length === 0;
+  }
+
+  clear(): void {
+    this.stack = [];
+  }
+}
