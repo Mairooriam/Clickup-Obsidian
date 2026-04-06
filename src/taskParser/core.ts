@@ -1,5 +1,4 @@
 import { Task, SUPPORTED_FLAGS, TaskFlags, TaskCache, Stack } from "./types.js"
-import { clickup_Task } from "./apiTypes/index.js"
 
 
 
@@ -73,31 +72,6 @@ export function taskHasPlaceholderId(task: Task): boolean {
   }
   return false;
 }
-
-export function taskMapClickupResponse(clickup_task: clickup_Task): Task {
-  let task = new Task(clickup_task.name, 0);
-  if (!task.flags) {
-    task.flags = new TaskFlags();
-  }
-  task.flags.id = clickup_task.id;
-  task.flags.parent = clickup_task.parent;
-  task.flags.top_level_parnet = clickup_task.top_level_parent;
-
-  return task
-}
-
-export function taskMapClickupResponses(clickup_tasks: clickup_Task[]): Task[] {
-  let tasks: Task[] = [];
-  for (let i = 0; i < clickup_tasks.length; i++) {
-    const clickup_task = clickup_tasks[i];
-    tasks.push(taskMapClickupResponse(clickup_task));
-  }
-
-  return tasks;
-}
-
-
-
 
 export function tasksResolveParents(tasks: Task[]): void {
   const idPrefix = "placeholder_";
@@ -184,7 +158,7 @@ export interface cacheMatchResult {
   };
 }
 
-export function cacheMatch(local: TaskCache, remote: TaskCache): cacheMatchResult {
+export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResult {
   const result: cacheMatchResult = { match: true, differing: { local: [], remote: [] } };
 
   if (local.roots.length !== remote.roots.length) {

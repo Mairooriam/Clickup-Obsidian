@@ -4,7 +4,7 @@ import { readFile, writeFile } from "fs/promises";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
-import { tasksResolveParents, taskMapClickupResponses, cacheBuildTaskCache, taskMatch, cacheMatch } from "./core.js"
+import { tasksResolveParents, cacheBuildTaskCache, taskMatch, cacheGenerateDiff } from "./core.js"
 export * from "./serialization.js"
 //skTODO: switch to lodash-es
 import lodash from "lodash";
@@ -12,7 +12,7 @@ import { tasksToString, type TaskCache } from "./types.js";
 const { isEqual } = lodash;
 import { inspect } from "util";
 import { ApiService, GetTasksOptions } from "./ApiService.js";
-import { Task } from "./types.js"
+import { Task, taskMapClickupResponses } from "./types.js"
 
 //TODO: make proper unit tests
 export function testLexer(): void {
@@ -207,7 +207,7 @@ export function testDiffChecker() {
 
   console.log("Compare result\n\n", taskMatch(local_cache.roots[0], remote_cache.roots[0])
   )
-  console.log("Compare caches\n\n", inspect(cacheMatch(local_cache, remote_cache), false, null));
+  console.log("Compare caches\n\n", inspect(cacheGenerateDiff(local_cache, remote_cache), false, null));
 
 }
 
@@ -237,7 +237,7 @@ export async function testWorkFlow() {
   if (!list) throw new Error("list not found");
   console.log("Found list: name:%s id:%s", list.name, list.id);
 
-  // fetch remote "becomes local"
+  // fetch intial remote "becomes local"
   let options: GetTasksOptions = {};
   options.subtasks = true;
   const _tasks = await api.getTasks(list.id, options);
@@ -253,24 +253,31 @@ export async function testWorkFlow() {
   // console.log("Cache saved to cache.md");
 
   // Edit locally
-
   const localChange = await readFile(__dirname + "/cache.md", "utf8");
   const local_cache = cacheCreateFromMd(localChange);
   console.log(local_cache.toString());
-  // Get Diff
+  // Get Remote for diff checking
+  const _remote_tasks = await api.getTasks(list.id, options);
+  let remote_tasks = taskMapClickupResponses(_remote_tasks.tasks);
+  let remote = cacheBuildTaskCache(remote_tasks);
+  // Generate Diff
+  let diff = cacheGenerateDiff(local_cache, remote);
+  console.log(inspect(diff, false, null));
+
+
   // Push diff
 
 }
 
 //
 // testLexer();
-testParser();
-testResolveParents();
+// testParser();
+// testResolveParents();
 // testToString();
 // testClickupAPI();
 // testMapClickupResponseToTasks();
 // testCache(await testMapClickupResponseToTasks())
 // testCacheFromUserMd();
 // testDiffChecker();
-// testWorkFlow();
+testWorkFlow();
 
