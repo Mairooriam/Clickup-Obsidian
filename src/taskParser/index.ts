@@ -96,54 +96,6 @@ export function testToString(): void {
   tasksResolveParents(tasks);
   console.log("after toString\n\n", tasksToString(tasks));
 }
-// export function testCollectRoots(): void {
-//   const testInput = `
-//     - Task 1 [id:abc123] [priority:high]
-//     \t- Task 1.1 [assignee:john] [status:pending]
-//     \t\t- Task 1.1.1 [type:bug] [urgent:true]
-//     - Task 2 [priority:low]
-//     - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
-//     - [x] Task with checkbox completed [status:review] [assignee:jane]
-//
-//     `;
-//
-//   const lexer = new Lexer(testInput);
-//   const tokens = lexer.tokenize();
-//   const parser = new Parser(tokens);
-//   // console.log(tokens);
-//   const tasks = parser.parse();
-//   tasksResolveParents(tasks);
-//   const cache: TaskCache = { rootNodes: [] };
-//
-//   console.log("after collectRoots\n\n rootNodesCount:%d\n", cacheCollectRoots(cache, tasks));
-//   console.log(inspect(cache, { depth: null, colors: true }));
-// }
-
-
-// export function testRemoveNonPlaceholder() {
-//   const testInput = `
-//     - Task 1 [id:abc123] [priority:high]
-//     \t- Task 1.1 [assignee:john] [status:pending]
-//     \t\t- Task 1.1.1 [type:bug] [urgent:true]
-//     - Task 2 [priority:low]
-//     - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
-//     - [x] Task with checkbox completed [status:review] [assignee:jane]
-//
-//     `;
-//
-//   const lexer = new Lexer(testInput);
-//   const tokens = lexer.tokenize();
-//   const parser = new Parser(tokens);
-//   // console.log(tokens);
-//   const tasks = parser.parse();
-//   tasksResolveParents(tasks);
-//   const cache: TaskCache = { rootNodes: [] };
-//   cacheCollectRoots(cache, tasks);
-//   cacheRemoveNonPlaceholderIds(cache);
-//   console.log(inspect(cache, { depth: null, colors: true }));
-// }
-
-
 
 export async function testClickupAPI() {
   const apiKey = await readFile("testApiKey", 'utf8');

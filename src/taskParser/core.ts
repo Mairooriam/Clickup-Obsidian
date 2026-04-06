@@ -140,36 +140,6 @@ export function tasksResolveParents(tasks: Task[]): void {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// for (const task of tasks) {
-//   // Remove tasks from stack until we find the parent
-//   while (stack.length > 0 && stack[stack.length - 1].level >= task.level) {
-//     stack.pop();
-//   }
-//   // If there's a parent on the stack, assign it
-//   if (stack.length > 0) {
-//     let parentId = taskGetFlag(stack[stack.length - 1], "id");
-//     taskSetFlag(task, "parent", parentId);
-//   }
-//   stack.push(task);
-// }
-
 export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
   const result = new TaskCache();
 
