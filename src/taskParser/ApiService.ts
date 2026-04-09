@@ -1,4 +1,4 @@
-import { ClickupResponse_GetTeams, ClickupResponse_GetSpaces, ClickupResponse_GetFolders, ClickupResponse_GetTasks } from "./apiTypes/index.js";
+import { clickupResponse_CreateTask, ClickupResponse_GetTeams, ClickupResponse_GetSpaces, ClickupResponse_GetFolders, ClickupResponse_GetTasks } from "./apiTypes/index.js";
 
 export interface GetTasksOptions {
   order_by?: "id" | "created" | "updated" | "due_date"; // Order by specific fields
@@ -26,8 +26,30 @@ export interface GetTasksOptions {
   custom_items?: number[]; // Filter by custom task types
 }
 
-export interface HttpResponse {
-  json: any;
+export interface CreateTaskOptions {
+  name: string;
+  description?: string;
+  assignees?: number[];
+  status?: string;
+  priority?: number | null;
+  due_date?: number;
+  due_date_time?: boolean;
+  start_date?: number;
+  start_date_time?: boolean;
+  time_estimate?: number;
+  points?: number;
+  notify_all?: boolean;
+  parent?: string | null;
+  markdown_content?: string;
+  tags?: string[];
+  archived?: boolean;
+  links_to?: string | null;
+  custom_item_id?: number;
+}
+
+
+export interface HttpResponse<T = any> {
+  json: T;
   status: number;
   text: string;
 }
@@ -47,7 +69,7 @@ export class ApiService {
     }
     return ApiService.instance;
   }
-  private async fetcher(url: string, options: { method?: string; body?: string; headers?: Record<string, string> } = {}): Promise<HttpResponse> {
+  private async fetcher<T = any>(url: string, options: { method?: string; body?: string; headers?: Record<string, string> } = {}): Promise<HttpResponse<T>> {
     const resp = await fetch(`https://api.clickup.com/api/v2/${url}`, {
       method: options.method ?? "GET",
       headers: {
@@ -171,9 +193,9 @@ export class ApiService {
       const task = tasks.tasks[i];
       //NOTE: if you need data from features or statuses add them
       // add mapping function in future? TaskSLims etc.
-  // return {
-  //   id: task.id,
-  //   name: task.name,
+      // return {
+      //   id: task.id,
+      //   name: task.name,
       delete task.custom_id;
       delete task.custom_item_id;
       delete task.description;
@@ -198,6 +220,15 @@ export class ApiService {
     }
     return tasks;
   }
+
+  public async createTask(listId: string, task: CreateTaskOptions): Promise<clickupResponse_CreateTask> {
+    const response = await this.fetcher<clickupResponse_CreateTask>(`list/${listId}/task`, {
+      method: "POST",
+      body: JSON.stringify(task),
+    });
+    return response.json;
+  }
+
 
   // public async getClickupLists(folderId: string): Promise<TAllLists[]> {
   // 	const response = await this.fetcher(`folder/${folderId}/list`);
