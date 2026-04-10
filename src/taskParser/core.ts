@@ -150,45 +150,54 @@ export function cacheBuildTaskCache(tasks: Task[]): TaskCache {
 }
 
 
+//TODO: rework to use maps?
 export interface cacheMatchResult {
   match: boolean;
-  differing: {
-    local: Task[];
-    remote: Task[];
-  };
+  toPost: Task[];
+  toPut: Task[];
+  toDelete: Task[]; // remote only — NOTE: just placeholder for now
 }
 
 export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResult {
-  const result: cacheMatchResult = { match: true, differing: { local: [], remote: [] } };
-
-  if (local.roots.length !== remote.roots.length) {
-    result.match = false;
-  }
+  const result: cacheMatchResult = { match: true, toPost: [], toPut: [], toDelete: [] };
 
   const compareNode = (localTask: Task): void => {
     const id = localTask.flags?.id;
     if (!id) throw new Error("cacheMatch: Local task missing id.");
+
     const remoteTask = remote.map.get(id);
-    if (!remoteTask || !taskMatch(localTask, remoteTask)) {
+
+    if (!remoteTask) {
+      // Exists locally but not remotely → POST
       result.match = false;
-      result.differing.local.push(localTask);
-      if (remoteTask) result.differing.remote.push(remoteTask);
-      // Remote doesn't know about this task at all, so all its children are new too
-      if (!remoteTask) {
-        local.children.get(id)?.forEach(child => collectAll(child));
-        return;
-      }
+      result.toPost.push(localTask);
+      local.children.get(id)?.forEach(child => collectAllAsPost(child));
+      return;
     }
-    // Either matched or differed but exists remotely — still recurse children
+
+    if (!taskMatch(localTask, remoteTask)) {
+      // Exists in both but different → PUT
+      result.match = false;
+      result.toPut.push(localTask);
+    }
+
     local.children.get(id)?.forEach(compareNode);
   };
 
-  const collectAll = (task: Task): void => {
-    result.differing.local.push(task);
-    local.children.get(task.flags?.id ?? "")?.forEach(collectAll);
+  const collectAllAsPost = (task: Task): void => {
+    result.toPost.push(task);
+    local.children.get(task.flags?.id ?? "")?.forEach(collectAllAsPost);
   };
 
   local.roots.forEach(compareNode);
+
+  // Exists remotely but not locally → DELETE (optional)
+  remote.map.forEach((remoteTask, id) => {
+    if (!local.map.has(id)) {
+      result.match = false;
+      result.toDelete.push(remoteTask);
+    }
+  });
 
   return result;
 }

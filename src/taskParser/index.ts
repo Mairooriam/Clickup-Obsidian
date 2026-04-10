@@ -1,18 +1,21 @@
-import { Lexer } from "./lexer.js"
+
 import { Parser } from "./parser.js"
 import { readFile, writeFile } from "fs/promises";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
-import { tasksResolveParents, cacheBuildTaskCache, taskMatch, cacheGenerateDiff } from "./core.js"
+import { tasksResolveParents, cacheBuildTaskCache, taskMatch, cacheGenerateDiff, taskSetFlag } from "./core.js"
 export * from "./serialization.js"
 //skTODO: switch to lodash-es
 import lodash from "lodash";
 import { tasksToString, type TaskCache } from "./types.js";
 const { isEqual } = lodash;
 import { inspect } from "util";
-import { ApiService, GetTasksOptions } from "./ApiService.js";
+import { ApiService, GetTasksOptions, CreateTaskOptions } from "./ApiService.js";
 import { Task, taskMapClickupResponses } from "./types.js"
+import { Lexer } from "./lexer.js"
+import { report } from "process";
+import { setFlagsFromString } from "v8";
 
 //TODO: make proper unit tests
 export function testLexer(): void {
@@ -262,10 +265,61 @@ export async function testWorkFlow() {
   let remote = cacheBuildTaskCache(remote_tasks);
   // Generate Diff
   let diff = cacheGenerateDiff(local_cache, remote);
-  console.log(inspect(diff, false, null));
+  const list_id: number = 901522227733;
+  for (const post of diff.toPost) {
+    let t: Task = post;
+    console.log("before post\n\n,", local_cache.toString());
+    const op: CreateTaskOptions = {
+      name: t.name,
+      parent: t.flags?.parent ?? null,
+    };
+    // const response = await api.createTask(list_id, op);
+    const response = await api.createTaskTemp(list_id, op);
+
+    // Verify response valid
+
+    // Update local cache before next post
+    // console.log(inspect(local_cache, false, null));
+
+    const oldKey = String(t.flags!.id!);
+    const newKey = String(response.id);
 
 
+    // update children of the task being processed. chilren to point to new id of the task
+    for (const task of local_cache.map.values()) {
+      if (String(task.flags?.parent) === oldKey) {
+        taskSetFlag(task, "parent", newKey);
+      }
+    }
+    taskSetFlag(t, "id", newKey);
+
+    local_cache.map.delete(oldKey);
+    local_cache.map.set(newKey, t);
+
+    // Update cache.children
+    if (local_cache.children.has(oldKey)) {
+      const children = local_cache.children.get(oldKey)!;
+      local_cache.children.delete(oldKey);
+      local_cache.children.set(newKey, children);
+    }
+
+    // Update Roots array
+    const rootIdx = local_cache.roots.findIndex(task => task.flags?.id === oldKey);
+    if (rootIdx !== -1) {
+      local_cache.roots[rootIdx] = t;
+    }
+
+  }
+  // console.log(inspect(local_cache.toString(), false, null));
+  console.log(local_cache.toString());
+  // console.log("name:%s, id:%s dat_created:%s list%s, url%s", r.name, r.id, r.date_created, r.list, r.url);
+  // console.log(inspect(diff, false, null));
   // Push diff
+
+}
+
+function testCreateTask() {
+  const list_id: number = 901522227733;
 
 }
 
@@ -274,7 +328,7 @@ export async function testWorkFlow() {
 // testParser();
 // testResolveParents();
 // testToString();
-// testClickupAPI();
+//  testClickupAPI();
 // testMapClickupResponseToTasks();
 // testCache(await testMapClickupResponseToTasks())
 // testCacheFromUserMd();

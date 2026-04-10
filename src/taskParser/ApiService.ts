@@ -48,7 +48,7 @@ export interface CreateTaskOptions {
 }
 
 
-export interface HttpResponse<T = any> {
+export interface HttpResponse<T> {
   json: T;
   status: number;
   text: string;
@@ -57,9 +57,11 @@ export interface HttpResponse<T = any> {
 export class ApiService {
   private static instance: ApiService;
   private readonly token: string;
+  private tempID: number;
 
   private constructor(token: string) {
     this.token = token;
+    this.tempID = 0;
   }
 
   public static getInstance(token?: string): ApiService {
@@ -69,7 +71,7 @@ export class ApiService {
     }
     return ApiService.instance;
   }
-  private async fetcher<T = any>(url: string, options: { method?: string; body?: string; headers?: Record<string, string> } = {}): Promise<HttpResponse<T>> {
+  private async fetcher<T>(url: string, options: { method?: string; body?: string; headers?: Record<string, string> } = {}): Promise<HttpResponse<T>> {
     const resp = await fetch(`https://api.clickup.com/api/v2/${url}`, {
       method: options.method ?? "GET",
       headers: {
@@ -81,8 +83,8 @@ export class ApiService {
     });
 
     const text = await resp.text();
-    let json: any;
-    try { json = JSON.parse(text); } catch { json = null; }
+    let json: T = null as T;
+    try { json = JSON.parse(text); } catch { json = null as T; }
 
     if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${text}`);
 
@@ -145,7 +147,7 @@ export class ApiService {
 
   public async getAuthorizedUser() {
     const resp = await this.fetcher(`user`);
-    const data = await resp.json;
+    const data = await resp.json as any;
     return data.user;
   }
 
@@ -174,13 +176,13 @@ export class ApiService {
 
   public async getList(folder_id: string) {
     const response = await this.fetcher(`folder/${folder_id}/list`);
-    const data = await response.json;
+    const data = await response.json as any;
     return data.lists;
   }
 
   public async getFolderlessList(space_id: string) {
     const response = await this.fetcher(`space/${space_id}/list`);
-    const data = await response.json;
+    const data = await response.json as any;
     return data.lists;
   }
 
@@ -221,14 +223,28 @@ export class ApiService {
     return tasks;
   }
 
-  public async createTask(listId: string, task: CreateTaskOptions): Promise<clickupResponse_CreateTask> {
+  public async createTask(listId: number, task: CreateTaskOptions): Promise<clickupResponse_CreateTask> {
     const response = await this.fetcher<clickupResponse_CreateTask>(`list/${listId}/task`, {
       method: "POST",
       body: JSON.stringify(task),
     });
-    return response.json;
+    const d = response.json;
+    return {
+      id: d.id,
+      name: d.name,
+      url: d.url,
+      list: d.list,
+      date_created: d.date_created,
+    };
   }
 
+  public async createTaskTemp(listId: number, task: CreateTaskOptions) {
+    return {
+      id: this.tempID++,
+      name: task.name,
+      parent: task.parent,
+    };
+  }
 
   // public async getClickupLists(folderId: string): Promise<TAllLists[]> {
   // 	const response = await this.fetcher(`folder/${folderId}/list`);
@@ -244,7 +260,7 @@ export class ApiService {
 
   public async getAllFolders(space_id: string) {
     const response = await this.fetcher(`space/${space_id}/folder`);
-    const data = await response.json;
+    const data = await response.json as any;
     return data.folders;
   }
 
