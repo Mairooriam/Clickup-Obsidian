@@ -1,3 +1,4 @@
+import { debug, error } from "node:console";
 import { Task, SUPPORTED_FLAGS, TaskFlags, Stack } from "./types.js"
 
 export function debugPrint(msg: string) {
@@ -7,7 +8,7 @@ export function debugPrint(msg: string) {
   // Example stack line: "    at myFunction (c:\path\to\file.ts:123:45)"
   const match = stack.match(/at\s+(.*)\s+\((.*):(\d+):(\d+)\)/);
   if (match) {
-    const [, func, file, line] = match;
+    const [, func, file, line, col] = match;
     console.error(`[${func} ${file}:${line}] ${msg}`);
   } else {
     console.error(msg);
@@ -90,11 +91,9 @@ export function tasksResolveParents(tasks: Task[]): void {
   let idx = 0;
 
   let lastTask: Task | null = null;
+  let lastIndent = 1;
   for (let i = 0; i < tasks.length; i++) {
     const currentTask = tasks[i];
-    if (!currentTask) {
-      continue;
-    }
     if (!currentTask.flags?.id) {
       let id = idPrefix + idx;
       taskSetFlag(currentTask, "id", id);
@@ -102,6 +101,8 @@ export function tasksResolveParents(tasks: Task[]): void {
     }
 
     if (currentTask.level == 1 || !lastTask) {
+      // console.log("hit level 1 or not lastTask iteration with: n:%s , l:%s \n", currentTask.name, currentTask.level);
+      lastIndent = currentTask.level;
       lastTask = currentTask;
       continue;
     }
@@ -121,6 +122,7 @@ export function tasksResolveParents(tasks: Task[]): void {
       stack.push(task);
     }
 
+    lastIndent = currentTask.level;
     lastTask = currentTask;
   }
 }
@@ -213,6 +215,9 @@ export class TaskCache {
     if (!node) return false;
 
     const parentId = node.flags?.parent;
+    const grandParentId = parentId && parentId !== "null"
+      ? this.map.get(parentId)?.flags?.parent
+      : null;
 
     const nodeChildren = this.children.get(id) ?? [];
 
