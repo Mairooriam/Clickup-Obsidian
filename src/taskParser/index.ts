@@ -278,7 +278,8 @@ export async function testWorkFlow() {
       name: t.name,
       parent: t.flags?.parent ?? null,
     };
-    const response = await api.createTaskTemp(list_id, op);
+    const response = await api.createTask(list_id, op)
+    // const response = await api.createTaskTemp(list_id, op);
 
     if (!t.flags?.id) {
       throw new Error("shouldn't happen. Check code that the usage is valid");
