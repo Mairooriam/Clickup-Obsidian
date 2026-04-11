@@ -1,5 +1,6 @@
 export const SUPPORTED_FLAGS = new Set(['id', 'parent', "top_level_parent"]);
 import { clickup_Task } from "./apiTypes/index.js"
+import { taskSetFlag } from "./core.js";
 
 export class TaskFlags {
   private readonly _brand = "TaskFlags";
@@ -65,24 +66,6 @@ export function tasksToString(tasks: Task[]): string {
   return result
 }
 
-export class TaskCache {
-  map: Map<string, Task> = new Map();
-  children: Map<string, Task[]> = new Map();
-  roots: Task[] = [];
-
-  toString(): string {
-    const lines: string[] = [];
-
-    const visit = (task: Task): void => {
-      lines.push(task.toString());
-      this.children.get(task.flags?.id ?? "")?.forEach(visit);
-    };
-
-    this.roots.forEach(visit);
-
-    return lines.join("\n");
-  }
-}
 
 export class Stack<T> {
   private stack: T[] = []

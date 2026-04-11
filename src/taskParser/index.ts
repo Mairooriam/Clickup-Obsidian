@@ -4,11 +4,12 @@ import { readFile, writeFile } from "fs/promises";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
-import { tasksResolveParents, cacheBuildTaskCache, taskMatch, cacheGenerateDiff, taskSetFlag } from "./core.js"
+// cacheBuildTaskCache
+import { tasksResolveParents, taskMatch, cacheGenerateDiff, taskSetFlag, debugPrint, createTask, TaskCache } from "./core.js"
 export * from "./serialization.js"
 //skTODO: switch to lodash-es
-import lodash from "lodash";
-import { tasksToString, type TaskCache } from "./types.js";
+import lodash, { forEach } from "lodash";
+import { tasksToString } from "./types.js";
 const { isEqual } = lodash;
 import { inspect } from "util";
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./ApiService.js";
@@ -16,6 +17,7 @@ import { Task, taskMapClickupResponses } from "./types.js"
 import { Lexer } from "./lexer.js"
 import { report } from "process";
 import { setFlagsFromString } from "v8";
+import { create } from "domain";
 
 //TODO: make proper unit tests
 export function testLexer(): void {
@@ -146,8 +148,7 @@ export async function testMapClickupResponseToTasks(): Promise<Task[]> {
 }
 
 export function testCache(tasks: Task[]): void {
-  let taskCache = cacheBuildTaskCache(tasks);
-
+  let taskCache = TaskCache.fromTasks(tasks);
   console.log("testCache\n\n", taskCache);
   console.log("testCache User input\n\n", taskCache.toString());
 }
@@ -170,7 +171,8 @@ export function testCacheFromUserMd() {
   const tasks = parser.parse();
   tasksResolveParents(tasks);
 
-  let taskCache = cacheBuildTaskCache(tasks);
+  // let taskCache = cacheBuildTaskCache(tasks);
+  let taskCache = TaskCache.fromTasks(tasks)
   console.log("testCache User input\n\n", taskCache);
 
 }
@@ -205,9 +207,10 @@ export function testDiffChecker() {
   tasksResolveParents(local_tasks);
   const remote_tasks = remote_parser.parse();
 
-  let local_cache = cacheBuildTaskCache(local_tasks);
-  let remote_cache = cacheBuildTaskCache(remote_tasks);
-
+  // let local_cache = cacheBuildTaskCache(local_tasks);
+  // let remote_cache = cacheBuildTaskCache(remote_tasks);
+  let local_cache = TaskCache.fromTasks(local_tasks);
+  let remote_cache = TaskCache.fromTasks(remote_tasks);
   console.log("Compare result\n\n", taskMatch(local_cache.roots[0], remote_cache.roots[0])
   )
   console.log("Compare caches\n\n", inspect(cacheGenerateDiff(local_cache, remote_cache), false, null));
@@ -220,7 +223,7 @@ export function cacheCreateFromMd(md: string): TaskCache {
   const parser = new Parser(tokens);
   const tasks = parser.parse();
   tasksResolveParents(tasks);
-  return cacheBuildTaskCache(tasks);
+  return TaskCache.fromTasks(tasks);
 }
 
 export async function testWorkFlow() {
@@ -245,7 +248,8 @@ export async function testWorkFlow() {
   options.subtasks = true;
   const _tasks = await api.getTasks(list.id, options);
   let tasks = taskMapClickupResponses(_tasks.tasks);
-  let local = cacheBuildTaskCache(tasks);
+  // let local = cacheBuildTaskCache(tasks);
+  let local = TaskCache.fromTasks(tasks);
   const cacheString = local.toString();
   const __dirname = dirname(fileURLToPath(import.meta.url));
   // const now = new Date();
@@ -262,7 +266,8 @@ export async function testWorkFlow() {
   // Get Remote for diff checking
   const _remote_tasks = await api.getTasks(list.id, options);
   let remote_tasks = taskMapClickupResponses(_remote_tasks.tasks);
-  let remote = cacheBuildTaskCache(remote_tasks);
+  // let remote = cacheBuildTaskCache(remote_tasks);
+  let remote = TaskCache.fromTasks(remote_tasks);
   // Generate Diff
   let diff = cacheGenerateDiff(local_cache, remote);
   const list_id: number = 901522227733;
@@ -273,42 +278,15 @@ export async function testWorkFlow() {
       name: t.name,
       parent: t.flags?.parent ?? null,
     };
-    // const response = await api.createTask(list_id, op);
     const response = await api.createTaskTemp(list_id, op);
 
-    // Verify response valid
-
-    // Update local cache before next post
-    // console.log(inspect(local_cache, false, null));
-
-    const oldKey = String(t.flags!.id!);
+    if (!t.flags?.id) {
+      throw new Error("shouldn't happen. Check code that the usage is valid");
+    }
+    const oldKey = String(t.flags.id);
     const newKey = String(response.id);
 
-
-    // update children of the task being processed. chilren to point to new id of the task
-    for (const task of local_cache.map.values()) {
-      if (String(task.flags?.parent) === oldKey) {
-        taskSetFlag(task, "parent", newKey);
-      }
-    }
-    taskSetFlag(t, "id", newKey);
-
-    local_cache.map.delete(oldKey);
-    local_cache.map.set(newKey, t);
-
-    // Update cache.children
-    if (local_cache.children.has(oldKey)) {
-      const children = local_cache.children.get(oldKey)!;
-      local_cache.children.delete(oldKey);
-      local_cache.children.set(newKey, children);
-    }
-
-    // Update Roots array
-    const rootIdx = local_cache.roots.findIndex(task => task.flags?.id === oldKey);
-    if (rootIdx !== -1) {
-      local_cache.roots[rootIdx] = t;
-    }
-
+    local_cache.updateNodeId(oldKey, newKey);
   }
   // console.log(inspect(local_cache.toString(), false, null));
   console.log(local_cache.toString());
@@ -318,10 +296,42 @@ export async function testWorkFlow() {
 
 }
 
-function testCreateTask() {
-  const list_id: number = 901522227733;
+function testCacheMethods() {
+  const testInput = `
+  - Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]
+  \t- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]
+  - Task 1 [_brand:TaskFlags] [parent:null] [id:86c8we387] [top_level_parnet:null]
+  \t- Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]
+  \t- Task2 1.1 [id:hello]
+  - Task 3
+  \t- Task 3.3
+    `;
+
+  const lexer = new Lexer(testInput);
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens);
+  const tasks = parser.parse();
+  tasksResolveParents(tasks);
+  const cache = TaskCache.fromTasks(tasks);
+  console.log("Hello from cache \n", cache);
+  // console.log(iespect(cache.roots, { depth: 5, colors: true }));
+  cache.addNode(createTask("testName", null, "testId"));
+  cache.addNode(createTask("addingChild", "testId", "child"));
+  cache.addNode(createTask("testName2", "child", "child2"));
+  cache.addNode(createTask("testName3", "child", "child3"));
+
+  console.log("Hello from cache before remove\n", cache);
+  cache.removeNode("child");
+  console.log("Hello from cache after remove \n", cache);
+  console.log(inspect(cache.toString(), { colors: true }));
+  console.log(cache.toString());
+
+
+  cache.updateNodeId("testId", "newTestId");
+  console.log("\n\n\n", cache.toString());
 
 }
+
 
 //
 // testLexer();
@@ -334,4 +344,6 @@ function testCreateTask() {
 // testCacheFromUserMd();
 // testDiffChecker();
 testWorkFlow();
+// testCacheUtils();
+// testCacheMethods();
 
