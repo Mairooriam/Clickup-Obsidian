@@ -1,0 +1,225 @@
+{
+  "main": {
+    "id": "10042b1b2bc919ca",
+    "type": "split",
+    "children": [
+      {
+        "id": "32f139210e5b0ccc",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9d05a601adedcf37",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "ff61c2d602e33391",
+    "type": "split",
+    "children": [
+      {
+        "id": "add67e6d0a3ff531",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b0f6673c630c35f9",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "110301d7592502ab",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "1bf8c3097f421b24",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "7959307f6d1fddb9",
+    "type": "split",
+    "children": [
+      {
+        "id": "9330a32ddaeb7e1a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f769e7e48269d8db",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "clickup-tasks.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for clickup-tasks"
+            }
+          },
+          {
+            "id": "6145abae2463ad19",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "clickup-tasks.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from clickup-tasks"
+            }
+          },
+          {
+            "id": "258e50ec91278c0c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "ed2150a6169ae239",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "b24331a251e1e957",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "clickup-tasks.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of clickup-tasks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "sample-plugin:Sample": false
+    }
+  },
+  "active": "9d05a601adedcf37",
+  "lastOpenFiles": [
+    "build/cache.md",
+    "obsidian-sample-plugin/versions.json",
+    "obsidian-sample-plugin/version-bump.mjs",
+    "obsidian-sample-plugin/tsconfig.json",
+    "obsidian-sample-plugin/styles.css",
+    "obsidian-sample-plugin/src/settings.ts",
+    "obsidian-sample-plugin/src/main.ts",
+    "obsidian-sample-plugin/src",
+    "obsidian-sample-plugin/package.json",
+    "obsidian-sample-plugin/package-lock.json",
+    "obsidian-sample-plugin/manifest.json",
+    "obsidian-sample-plugin/README.md",
+    "obsidian-sample-plugin/AGENTS.md",
+    "plugin/README.md",
+    "plugin/AGENTS.md",
+    "node_modules/@cspotcode/source-map-support/README.md",
+    "node_modules/@cspotcode/source-map-support/LICENSE.md",
+    "clickup-tasks.md",
+    "build/cache_2026-04-06T19-53-41-174Z.md",
+    "build/cache_2026-04-06T10-24-40-059Z.md",
+    "build/cache_2026-04-06T10-24-25-736Z.md",
+    "build/cache_2026-04-06T10-23-52-332Z.md",
+    "build/cache_2026-04-06T10-23-31-387Z.md",
+    "cache.md",
+    "build/cache_2026-04-06T10-22-58-957Z.md",
+    "node_modules/@jest/reporters/assets/jest_logo.png",
+    "node_modules/supports-color/readme.md",
+    "node_modules/strip-ansi/readme.md",
+    "node_modules/string-width/readme.md",
+    "node_modules/shebang-command/readme.md",
+    "node_modules/resolve-cwd/readme.md",
+    "node_modules/pkg-dir/readme.md",
+    "node_modules/pirates/README.md",
+    "node_modules/picocolors/README.md",
+    "node_modules/path-key/readme.md",
+    "node_modules/p-limit/readme.md",
+    "node_modules/istanbul-reports/lib/html-spa/assets/sort-arrow-sprite.png",
+    "node_modules/istanbul-reports/lib/html/assets/sort-arrow-sprite.png",
+    "node_modules/istanbul-reports/lib/html/assets/favicon.png"
+  ]
+}
