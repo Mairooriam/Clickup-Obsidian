@@ -1,5 +1,5 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
+import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
 
 // Remember to rename these classes and interfaces!
 
@@ -22,7 +22,7 @@ export default class MyPlugin extends Plugin {
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
+			name: 'Open modal (simpl)',
 			callback: () => {
 				new SampleModal(this.app).open();
 			}
@@ -88,12 +88,12 @@ class SampleModal extends Modal {
 	}
 
 	onOpen() {
-		let {contentEl} = this;
+		let { contentEl } = this;
 		contentEl.setText('Woah!');
 	}
 
 	onClose() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 	}
 }
