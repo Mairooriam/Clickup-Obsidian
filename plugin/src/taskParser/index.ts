@@ -1,23 +1,19 @@
 
 import { Parser } from "./parser.js"
-import { readFile, writeFile } from "fs/promises";
-import { resolve, dirname } from "path";
+import { readFile } from "fs/promises";
+import { dirname } from "path";
 import { fileURLToPath } from "url";
 
 // cacheBuildTaskCache
-import { tasksResolveParents, taskMatch, cacheGenerateDiff, taskSetFlag, debugPrint, createTask, TaskCache } from "./core.js"
-export * from "./serialization.js"
+import { tasksResolveParents, taskMatch, cacheGenerateDiff, createTask, TaskCache } from "./core.js"
 //skTODO: switch to lodash-es
-import lodash, { forEach } from "lodash";
+// import lodash, { forEach } from "lodash";
 import { tasksToString } from "./types.js";
-const { isEqual } = lodash;
+// const { isEqual } = lodash;
 import { inspect } from "util";
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./ApiService.js";
 import { Task, taskMapClickupResponses } from "./types.js"
 import { Lexer } from "./lexer.js"
-import { report } from "process";
-import { setFlagsFromString } from "v8";
-import { create } from "domain";
 
 //TODO: make proper unit tests
 export function testLexer(): void {
@@ -108,13 +104,13 @@ export async function testClickupAPI() {
   const teams = await api.getTeams();
   console.log("ClickupAPI\n\n ");
   console.log(inspect(teams, { depth: null, colors: true }));
-  const teamId = teams.teams[0].id;
+  const teamId = teams!.teams[0]!.id;
   const spaces = await api.getSpaces(teamId);
   console.log("Spaces \n\n", inspect(spaces, { depth: null, colors: true }));
-  const spaceId = spaces.spaces[0].id;
+  const spaceId = spaces.spaces[0]!.id;
   console.log(spaceId);
   const folders = await api.getFolders(spaceId)
-  console.log(folders.folders[0].lists);
+  console.log(folders.folders[0]!.lists);
 
   let options: GetTasksOptions = {};
   options.subtasks = true;
@@ -129,13 +125,13 @@ export async function testMapClickupResponseToTasks(): Promise<Task[]> {
   const teams = await api.getTeams();
   console.log("ClickupAPI\n\n ");
   console.log(inspect(teams, { depth: null, colors: true }));
-  const teamId = teams.teams[0].id;
+  const teamId = teams.teams[0]!.id;
   const spaces = await api.getSpaces(teamId);
   console.log("Spaces \n\n", inspect(spaces, { depth: null, colors: true }));
-  const spaceId = spaces.spaces[0].id;
+  const spaceId = spaces.spaces[0]!.id;
   console.log(spaceId);
   const folders = await api.getFolders(spaceId)
-  console.log(folders.folders[0].lists);
+  console.log(folders.folders[0]!.lists);
 
   let options: GetTasksOptions = {};
   options.subtasks = true;
@@ -211,7 +207,7 @@ export function testDiffChecker() {
   // let remote_cache = cacheBuildTaskCache(remote_tasks);
   let local_cache = TaskCache.fromTasks(local_tasks);
   let remote_cache = TaskCache.fromTasks(remote_tasks);
-  console.log("Compare result\n\n", taskMatch(local_cache.roots[0], remote_cache.roots[0])
+  console.log("Compare result\n\n", taskMatch(local_cache.roots[0]!, remote_cache.roots[0]!)
   )
   console.log("Compare caches\n\n", inspect(cacheGenerateDiff(local_cache, remote_cache), false, null));
 
@@ -231,9 +227,9 @@ export async function testWorkFlow() {
   const apiKey = await readFile("testApiKey", 'utf8');
   let api = ApiService.getInstance(apiKey);
   const teams = await api.getTeams();
-  const teamId = teams.teams[0].id;
+  const teamId = teams.teams[0]!.id;
   const spaces = await api.getSpaces(teamId);
-  const spaceId = spaces.spaces[0].id;
+  const spaceId = spaces.spaces[0]!.id;
   const folders = await api.getFolders(spaceId)
   const folder = folders.folders.find((f: any) => f.name === "Projects");
   if (!folder) throw new Error("Folder not found");
@@ -246,11 +242,11 @@ export async function testWorkFlow() {
   // fetch intial remote "becomes local"
   let options: GetTasksOptions = {};
   options.subtasks = true;
-  const _tasks = await api.getTasks(list.id, options);
-  let tasks = taskMapClickupResponses(_tasks.tasks);
+  // const _tasks = await api.getTasks(list.id, options);
+  // let tasks = taskMapClickupResponses(_tasks.tasks);
   // let local = cacheBuildTaskCache(tasks);
-  let local = TaskCache.fromTasks(tasks);
-  const cacheString = local.toString();
+  // let local = TaskCache.fromTasks(tasks);
+  // const cacheString = local.toString();
   const __dirname = dirname(fileURLToPath(import.meta.url));
   // const now = new Date();
   // const timestampForFile = now.toISOString().replace(/[:.]/g, "-");
@@ -297,7 +293,7 @@ export async function testWorkFlow() {
 
 }
 
-function testCacheMethods() {
+export function testCacheMethods() {
   const testInput = `
   - Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]
   \t- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]

@@ -79,7 +79,7 @@ export class ApiService {
         "Content-Type": "application/json",
         ...options.headers,
       },
-      body: options.body,
+      ...(options.body !== undefined && { body: options.body }), 
     });
 
     const text = await resp.text();
@@ -162,6 +162,7 @@ export class ApiService {
     for (let i = 0; i < spaces.spaces.length; i++) {
       const space = spaces.spaces[i];
       //NOTE: if you need data from features or statuses add them
+      if (!space) continue;
       delete space.features;
       delete space.statuses;
     }
@@ -198,6 +199,7 @@ export class ApiService {
       // return {
       //   id: task.id,
       //   name: task.name,
+      if (!task) continue;
       delete task.custom_id;
       delete task.custom_item_id;
       delete task.description;
@@ -239,6 +241,7 @@ export class ApiService {
   }
 
   public async createTaskTemp(listId: number, task: CreateTaskOptions) {
+    void (listId)
     return {
       id: this.tempID++,
       name: task.name,

@@ -33,7 +33,8 @@ export default class MyPlugin extends Plugin {
 			name: 'Replace selected content',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
 				const cursor = editor.getCursor();
-				editor.replaceRange('your string here', cursor);
+
+				editor.replaceRange('your string hereeeeee', cursor);
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command

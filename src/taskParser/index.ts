@@ -6,7 +6,6 @@ import { fileURLToPath } from "url";
 
 // cacheBuildTaskCache
 import { tasksResolveParents, taskMatch, cacheGenerateDiff, createTask, TaskCache } from "./core.js"
-export * from "./serialization.js"
 //skTODO: switch to lodash-es
 // import lodash, { forEach } from "lodash";
 import { tasksToString } from "./types.js";

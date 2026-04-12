@@ -1,9 +1,7 @@
 export const SUPPORTED_FLAGS = new Set(['id', 'parent', "top_level_parent"]);
 import { clickup_Task } from "./apiTypes/index.js"
-import { taskSetFlag } from "./core.js";
 
 export class TaskFlags {
-  private readonly _brand = "TaskFlags";
   parent?: string;
   id?: string;
   top_level_parent?: string;
@@ -19,10 +17,9 @@ export class TaskFlags {
 }
 
 export class Task {
-  private readonly _brand = "Task";
   name: string;
   level: number;
-  flags?: TaskFlags;
+  flags?: TaskFlags | undefined;
 
   constructor(name: string, level: number, flags?: TaskFlags) {
     this.name = name;
@@ -51,7 +48,9 @@ export function taskMapClickupResponses(clickup_tasks: clickup_Task[]): Task[] {
   let tasks: Task[] = [];
   for (let i = 0; i < clickup_tasks.length; i++) {
     const clickup_task = clickup_tasks[i];
-    tasks.push(taskMapClickupResponse(clickup_task));
+    if (clickup_task) {
+      tasks.push(taskMapClickupResponse(clickup_task));
+    }
   }
 
   return tasks;
@@ -61,7 +60,9 @@ export function tasksToString(tasks: Task[]): string {
   let result = "";
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i];
-    result += task.toString() + "\n";
+    if (task) {
+      result += task.toString() + "\n";
+    }
   }
   return result
 }
