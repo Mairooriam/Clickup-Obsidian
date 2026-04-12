@@ -11,10 +11,14 @@
             "id": "9d05a601adedcf37",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "testing.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "testing"
             }
           }
         ]
@@ -182,6 +186,8 @@
   },
   "active": "9d05a601adedcf37",
   "lastOpenFiles": [
+    "test_api_key",
+    "testing.md",
     "build/cache.md",
     "obsidian-sample-plugin/versions.json",
     "obsidian-sample-plugin/version-bump.mjs",
@@ -217,7 +223,6 @@
     "node_modules/pirates/README.md",
     "node_modules/picocolors/README.md",
     "node_modules/path-key/readme.md",
-    "node_modules/p-limit/readme.md",
     "node_modules/istanbul-reports/lib/html-spa/assets/sort-arrow-sprite.png",
     "node_modules/istanbul-reports/lib/html/assets/sort-arrow-sprite.png",
     "node_modules/istanbul-reports/lib/html/assets/favicon.png"
