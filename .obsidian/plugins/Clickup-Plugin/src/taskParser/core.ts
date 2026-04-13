@@ -159,6 +159,15 @@ export function tasksResolveParents(tasks: Task[]): void {
 //
 //   return result;
 // }
+
+function recalculateLevels(cache: TaskCache): void {
+  const visit = (task: Task, level: number): void => {
+    task.level = level;
+    cache.children.get(task.flags?.id ?? "")?.forEach(child => visit(child, level + 1));
+  };
+  cache.roots.forEach(root => visit(root, 0));
+}
+
 export class TaskCache {
   map: Map<string, Task> = new Map();
   children: Map<string, Task[]> = new Map();
@@ -185,6 +194,9 @@ export class TaskCache {
         tree.children.get(parentId)!.push(task);
       }
     }
+
+	recalculateLevels(tree);
+
     return tree;
   }
 
@@ -240,6 +252,7 @@ export class TaskCache {
 
     this.children.delete(id);
     this.map.delete(id);
+	recalculateLevels(this);
     return true;
   }
   updateNodeId(oldKey: string, newKey: string) {

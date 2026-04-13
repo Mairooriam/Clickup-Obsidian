@@ -3,6 +3,16 @@ import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings
 
 // Remember to rename these classes and interfaces!
 
+import { Parser } from "./taskParser/parser"
+import { readFile } from "fs/promises";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { tasksResolveParents, taskMatch, cacheGenerateDiff, createTask, TaskCache } from "./taskParser/core"
+import { inspect } from "util";
+import { ApiService, GetTasksOptions, CreateTaskOptions } from "./taskParser/ApiService";
+import { Task, taskMapClickupResponses, tasksToString } from "./taskParser/types"
+import { Lexer } from "taskParser/lexer"
+
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
@@ -23,8 +33,37 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 			id: 'open-modal-simple',
 			name: 'Open modal (simpl)',
-			callback: () => {
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				new SampleModal(this.app).open();
+				// const apiKey = await readFile("../../../../testApiKey", 'utf8');
+				// let api = ApiService.getInstance(apiKey);
+				const apiKey = this.settings.apiKey;
+				if (!apiKey) {
+					new Notice("API key not set. Please enter it in the plugin settings.");
+					return;
+				}
+				let api = ApiService.getInstance(apiKey);
+				const teams = await api.getTeams();
+				const teamId = teams.teams[0]!.id;
+				const spaces = await api.getSpaces(teamId);
+				const spaceId = spaces.spaces[0]!.id;
+				const folders = await api.getFolders(spaceId)
+				const folder = folders.folders.find((f: any) => f.name === "Projects");
+				if (!folder) throw new Error("Folder not found");
+				console.log("Found folder:", folder);
+				console.log("Lists in folder:", folder.lists);
+				const list = folder.lists.find((f: any) => f.name === "API_test_lista");
+				if (!list) throw new Error("list not found");
+				console.log("Found list: name:%s id:%s", list.name, list.id);
+				let options: GetTasksOptions = {};
+				options.subtasks = true;
+				const _tasks = await api.getTasks(list.id, options);
+				let tasks = taskMapClickupResponses(_tasks.tasks);
+				let local = TaskCache.fromTasks(tasks);
+				const cacheString = local.toString();
+				console.log(cacheString);
+				console.log(local);
+				editor.replaceSelection(cacheString);
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
