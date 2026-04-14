@@ -1,17 +1,14 @@
-export interface ClickupResponse_GetSpaces {
-  spaces: Space[];
-}
-
-export interface Space {
-  id: string;
-  name: string;
-  color: string;
-  private: boolean;
-  avatar: null;
-  admin_can_manage: boolean;
-  statuses?: any; //TODO: HEHEHE
-  multiple_assignees: boolean;
-  features?: any; //TODO: HEHEHE
-  archived: boolean;
+// For internal use
+export interface _Clickup_Space {
+	id: string;
+	name: string;
+	color: string;
+	private: boolean;
+	avatar: null;
+	admin_can_manage: boolean;
+	statuses?: any; //TODO: Not full type
+	multiple_assignees: boolean;
+	features?: any; //TODO: Not full type
+	archived: boolean;
 }
 

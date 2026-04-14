@@ -1,16 +1,22 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import MyPlugin from "./main";
 import { ClickupResponseSlim_GetTeams, } from "./taskParser/apiTypes/getTeams"
+import { ClickupResponseSlim_GetSpaces } from "taskParser/apiTypes";
 
 export interface TeamSettings {
 	data: ClickupResponseSlim_GetTeams;
 	selected: string;
 	refreshOnOpen: boolean;
 }
+export interface SpaceSettings {
+	data: ClickupResponseSlim_GetSpaces;
+	selected: string;
+}
 export interface MyPluginSettings {
 	mySetting: string;
 	apiKey: string;
 	team: TeamSettings;
+	space: SpaceSettings;
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
@@ -19,7 +25,12 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
 	team: {
 		data: { teams: [] },
 		selected: "0",
+		refreshOnOpen: true,
 	},
+	    space: {
+        data: { spaces: [] },
+        selected: "0",
+    },
 }
 
 export class SampleSettingTab extends PluginSettingTab {
@@ -42,6 +53,7 @@ export class SampleSettingTab extends PluginSettingTab {
 
 		this.displayAuth(containerEl);
 		this.displayTeamSection(containerEl);
+		this.displaySpaceSection(containerEl);
 	}
 
 
@@ -82,16 +94,16 @@ export class SampleSettingTab extends PluginSettingTab {
 		});
 
 		new Setting(containerEl)
-        .setName('Load teams on settings open')
-        .setDesc('Automatically fetch teams from ClickUp every time you open settings')
-        .addToggle(toggle => {
-            toggle
-                .setValue(this.plugin.settings.team.refreshOnOpen)
-                .onChange(async (value) => {
-                    this.plugin.settings.team.refreshOnOpen = value;
-                    await this.plugin.saveSettings();
-                });
-        });
+			.setName('Load teams on settings open')
+			.setDesc('Automatically fetch teams from ClickUp every time you open settings')
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.team.refreshOnOpen)
+					.onChange(async (value) => {
+						this.plugin.settings.team.refreshOnOpen = value;
+						await this.plugin.saveSettings();
+					});
+			});
 		new Setting(containerEl)
 			.setName('Selected Team')
 			.setDesc('Choose your team')
@@ -105,6 +117,47 @@ export class SampleSettingTab extends PluginSettingTab {
 					});
 			});
 	}
+
+	    private displaySpaceSection(containerEl: HTMLElement) {
+        containerEl.createEl('h3', { text: 'Space' });
+
+        // Only show if a team is selected
+        if (this.plugin.settings.team.selected === "0") {
+            containerEl.createEl('div', { text: 'Select a team first.' });
+            return;
+        }
+
+        let refreshBtn = containerEl.createEl("button", { text: "Refresh spaces" });
+        let statusEl = containerEl.createSpan({ text: "" });
+        refreshBtn.onclick = async () => {
+            refreshBtn.disabled = true;
+            statusEl.setText("Refreshing...");
+            const spaces = await this.plugin.api.getSpacesSlim(this.plugin.settings.team.selected);
+            this.plugin.settings.space.data = spaces;
+            await this.plugin.saveSettings();
+            statusEl.setText("Spaces refreshed!");
+            refreshBtn.disabled = false;
+            this.display();
+        };
+
+        const spaceOptions: Record<string, string> = { "0": "None" };
+        this.plugin.settings.space.data.spaces.forEach(s => {
+            spaceOptions[s.id] = s.name;
+        });
+
+        new Setting(containerEl)
+            .setName('Selected Space')
+            .setDesc('Choose your space')
+            .addDropdown(drop => {
+                drop
+                    .addOptions(spaceOptions)
+                    .setValue(this.plugin.settings.space.selected)
+                    .onChange(async (value) => {
+                        this.plugin.settings.space.selected = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+    }
 }
 
 

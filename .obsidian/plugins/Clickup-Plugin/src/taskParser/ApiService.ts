@@ -1,4 +1,4 @@
-import { clickupResponse_CreateTask, ClickupResponse_GetTeams, ClickupResponse_GetSpaces, ClickupResponse_GetFolders, ClickupResponse_GetTasks } from "./apiTypes/index.js";
+import { clickupResponse_CreateTask, ClickupResponse_GetTeams, ClickupResponse_GetSpaces, ClickupResponse_GetFolders, ClickupResponse_GetTasks, ClickupResponseSlim_GetSpaces, spacesToSlimSpaces } from "./apiTypes/index.js";
 import { TeamsToSlim, ClickupResponseSlim_GetTeams } from "./apiTypes/getTeams.js"
 export interface GetTasksOptions {
   order_by?: "id" | "created" | "updated" | "due_date"; // Order by specific fields
@@ -165,18 +165,15 @@ export class ApiService {
 	}
 
   public async getSpaces(team_id: string): Promise<ClickupResponse_GetSpaces> {
-    const response = await this.fetcher(`team/${team_id}/space`);
-    const spaces = await response.json as ClickupResponse_GetSpaces;
-    for (let i = 0; i < spaces.spaces.length; i++) {
-      const space = spaces.spaces[i];
-      //NOTE: if you need data from features or statuses add them
-      if (!space) continue;
-      delete space.features;
-      delete space.statuses;
-    }
-    return spaces
+    const response = await this.fetcher<ClickupResponse_GetSpaces>(`team/${team_id}/space`);
+    const spaces = response.json;
+    return spaces;
   }
 
+  public async getSpacesSlim(team_id: string): Promise<ClickupResponseSlim_GetSpaces> {
+    const response = await this.fetcher<ClickupResponse_GetSpaces>(`team/${team_id}/space`);
+    return spacesToSlimSpaces(response.json);
+  }
   public async getFolders(space_id: string): Promise<ClickupResponse_GetFolders> {
     const response = await this.fetcher(`space/${space_id}/folder`);
     const folders = await response.json as ClickupResponse_GetFolders;
