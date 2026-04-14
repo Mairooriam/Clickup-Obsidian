@@ -335,6 +335,15 @@ export function testCacheMethods() {
 
 }
 
+export function testDiffColor() {
+	//TODO: add color to diff.
+	//OK color -> ???
+	//Added -> green
+	//Removed -> Red
+	//Editred -> blue
+
+}
+
 
 //
 // testLexer();

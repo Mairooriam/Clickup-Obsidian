@@ -1,5 +1,5 @@
 import { clickupResponse_CreateTask, ClickupResponse_GetTeams, ClickupResponse_GetSpaces, ClickupResponse_GetFolders, ClickupResponse_GetTasks } from "./apiTypes/index.js";
-
+import { TeamsToSlim, ClickupResponseSlim_GetTeams } from "./apiTypes/getTeams.js"
 export interface GetTasksOptions {
   order_by?: "id" | "created" | "updated" | "due_date"; // Order by specific fields
   reverse?: boolean; // Reverse the order
@@ -72,6 +72,9 @@ export class ApiService {
     return ApiService.instance;
   }
   private async fetcher<T>(url: string, options: { method?: string; body?: string; headers?: Record<string, string> } = {}): Promise<HttpResponse<T>> {
+	const stack = new Error().stack?.split('\n').slice(2, 5).join('\n') ?? "no stack";
+	console.log(`[API] ${options.method ?? "GET"} ${url}\nCalled from:\n${stack}`);
+
     const resp = await fetch(`https://api.clickup.com/api/v2/${url}`, {
       method: options.method ?? "GET",
       headers: {
@@ -152,9 +155,14 @@ export class ApiService {
   }
 
   public async getTeams(): Promise<ClickupResponse_GetTeams> {
-    const resp = await this.fetcher(`team`);
-    return resp.json as ClickupResponse_GetTeams;
+    const resp = await this.fetcher<ClickupResponse_GetTeams>(`team`);
+    return resp.json;
   }
+
+	public async getTeamsSlim(): Promise<ClickupResponseSlim_GetTeams> {
+		const resp = await this.fetcher<ClickupResponse_GetTeams>(`team`);
+		return TeamsToSlim(resp.json);
+	}
 
   public async getSpaces(team_id: string): Promise<ClickupResponse_GetSpaces> {
     const response = await this.fetcher(`team/${team_id}/space`);

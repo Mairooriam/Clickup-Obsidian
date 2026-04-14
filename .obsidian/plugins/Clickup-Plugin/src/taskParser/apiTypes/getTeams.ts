@@ -1,7 +1,27 @@
+export interface ClickupResponseSlim_GetTeams {
+    teams: TeamSlim[];
+}
+
 export interface ClickupResponse_GetTeams {
     teams: Team[];
 }
 
+function TeamToSlimTeam(team: Team): TeamSlim {
+    return {
+        id: team.id,
+        name: team.name,
+    };
+}
+export function TeamsToSlim(response: ClickupResponse_GetTeams): ClickupResponseSlim_GetTeams {
+    return {
+        teams: response.teams.map(TeamToSlimTeam),
+    };
+}
+
+export interface TeamSlim {
+	id: string;
+	name: string;
+}
 export interface Team {
     id:      string;
     name:    string;
