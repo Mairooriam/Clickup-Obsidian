@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/taskParser",
+    "isolatedModules": false,
+    "module": "CommonJS"
+  },
+  "include": [
+    "src/taskParser/**/*.ts"
+  ]
+}

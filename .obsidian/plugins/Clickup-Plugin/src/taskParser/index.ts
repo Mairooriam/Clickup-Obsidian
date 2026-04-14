@@ -1,8 +1,10 @@
 
 import { Parser } from "./parser.js"
-import { readFile } from "fs/promises";
-import { dirname } from "path";
+import { readFile, writeFile, access } from "fs/promises";
+import {  resolve } from "path";
 import { fileURLToPath } from "url";
+import { dirname } from "path";
+
 
 // cacheBuildTaskCache
 import { tasksResolveParents, taskMatch, cacheGenerateDiff, createTask, TaskCache } from "./core.js"
@@ -239,25 +241,29 @@ export async function testWorkFlow() {
   if (!list) throw new Error("list not found");
   console.log("Found list: name:%s id:%s", list.name, list.id);
 
-  // fetch intial remote "becomes local"
-  let options: GetTasksOptions = {};
-  options.subtasks = true;
-  // const _tasks = await api.getTasks(list.id, options);
-  // let tasks = taskMapClickupResponses(_tasks.tasks);
-  // let local = cacheBuildTaskCache(tasks);
-  // let local = TaskCache.fromTasks(tasks);
-  // const cacheString = local.toString();
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  // const now = new Date();
-  // const timestampForFile = now.toISOString().replace(/[:.]/g, "-");
-  // const filePath = resolve(__dirname, `cache_${timestampForFile}.md`);
-  // const timestampHeader = `# Cache generated at: ${now.toISOString()}\n\n`;
-  // await writeFile(filePath, timestampHeader + cacheString, "utf8");
-  // console.log("Cache saved to cache.md");
+// fetch intial remote "becomes local"
+let options: GetTasksOptions = {};
+options.subtasks = true;
 
-  // Edit locally
-  const localChange = await readFile(__dirname + "/cache.md", "utf8");
-  const local_cache = cacheCreateFromMd(localChange);
+// Check if cache exists, if not fetch from remote and create it
+  let local_cache: TaskCache;
+
+  // if (!cacheExists) {
+  //   console.log("Cache not found, fetching from remote and creating cache.md...");
+    const _tasks = await api.getTasks(list.id, options);
+    let tasks = taskMapClickupResponses(_tasks.tasks);
+    local_cache = TaskCache.fromTasks(tasks);
+  //   const cacheString = local_cache.toString();
+  //   const now = new Date();
+  //   const timestampHeader = `# Cache generated at: ${now.toISOString()}\n\n`;
+  //   await writeFile(cachePath, timestampHeader + cacheString, "utf8");
+  //   console.log("Cache saved to cache.md");
+  // } else {
+  //   console.log("Cache found, loading from cache.md...");
+  //   const localChange = await readFile(cachePath, "utf8");
+  //   local_cache = cacheCreateFromMd(localChange);
+  // }
+
   console.log(local_cache.toString());
   // Get Remote for diff checking
   const _remote_tasks = await api.getTasks(list.id, options);
