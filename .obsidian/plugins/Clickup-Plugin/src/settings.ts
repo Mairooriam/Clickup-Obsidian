@@ -3,8 +3,8 @@ import MyPlugin from "./main";
 import { ClickupResponseSlim_GetTeams, } from "./taskParser/apiTypes/getTeams"
 
 export interface TeamSettings {
-    data: ClickupResponseSlim_GetTeams;
-    selected: string;
+	data: ClickupResponseSlim_GetTeams;
+	selected: string;
 	refreshOnOpen: boolean;
 }
 export interface MyPluginSettings {
@@ -30,14 +30,22 @@ export class SampleSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	onLoad(): void{}
+	onLoad(): void { }
 
 	async display(): Promise<void> {
 		const { containerEl } = this;
 		containerEl.empty();
+
 		containerEl.createEl('h2', { text: 'Plugin Settings' });
 
 		containerEl.createEl('div', { text: 'Settings loaded' });
+
+		this.displayAuth(containerEl);
+		this.displayTeamSection(containerEl);
+	}
+
+
+	private displayAuth(containerEl: HTMLElement) {
 
 		// Refresh button
 		let refreshBtn = containerEl.createEl("button", { text: "Refresh teams" });
@@ -51,7 +59,7 @@ export class SampleSettingTab extends PluginSettingTab {
 			statusEl.setText("Teams refreshed!");
 			refreshBtn.disabled = false;
 			console.log(teams);
-			this.display(); 
+			this.display();
 		};
 
 		// API Key input
@@ -65,29 +73,17 @@ export class SampleSettingTab extends PluginSettingTab {
 					this.plugin.settings.apiKey = value;
 					await this.plugin.saveSettings();
 				}));
+	}
 
-        const teamOptions: Record<string, string> = { "0": "None" };
-        this.plugin.settings.team.data.teams.forEach(t => {
-            teamOptions[t.id] = t.name;
-        });
+	private displayTeamSection(containerEl: HTMLElement) {
+		const teamOptions: Record<string, string> = { "0": "None" };
+		this.plugin.settings.team.data.teams.forEach(t => {
+			teamOptions[t.id] = t.name;
+		});
 
-        new Setting(containerEl)
-            .setName('Selected Team')
-            .setDesc('Choose your team')
-            .addDropdown(drop => {
-                drop
-                    .addOptions(teamOptions)
-                    .setValue(this.plugin.settings.team.selected)
-                    .onChange(async (value) => {
-                        this.plugin.settings.team.selected = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-
-		    // Checkbox for loadTeamsOnLoad
-    new Setting(containerEl)
+		new Setting(containerEl)
         .setName('Load teams on settings open')
-        .setDesc('Automatically fetch teams from ClickUp every time you open obsidian')
+        .setDesc('Automatically fetch teams from ClickUp every time you open settings')
         .addToggle(toggle => {
             toggle
                 .setValue(this.plugin.settings.team.refreshOnOpen)
@@ -95,7 +91,20 @@ export class SampleSettingTab extends PluginSettingTab {
                     this.plugin.settings.team.refreshOnOpen = value;
                     await this.plugin.saveSettings();
                 });
-        });	
-
+        });
+		new Setting(containerEl)
+			.setName('Selected Team')
+			.setDesc('Choose your team')
+			.addDropdown(drop => {
+				drop
+					.addOptions(teamOptions)
+					.setValue(this.plugin.settings.team.selected)
+					.onChange(async (value) => {
+						this.plugin.settings.team.selected = value;
+						await this.plugin.saveSettings();
+					});
+			});
 	}
 }
+
+
