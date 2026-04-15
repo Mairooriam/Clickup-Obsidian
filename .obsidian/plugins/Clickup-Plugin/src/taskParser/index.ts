@@ -106,19 +106,19 @@ export async function testClickupAPI() {
 	const teams = await api.getTeams();
 	console.log("ClickupAPI\n\n ");
 	console.log(inspect(teams, { depth: null, colors: true }));
-	const teamId = teams!.teams[0]!.id;
+	const teamId = teams[0]!.id;
 	const spaces = await api.getSpaces(teamId);
 	console.log("Spaces \n\n", inspect(spaces, { depth: null, colors: true }));
-	const spaceId = spaces.spaces[0]!.id;
+	const spaceId = spaces[0]!.id;
 	console.log(spaceId);
 	const folders = await api.getFolders(spaceId)
-	console.log(folders.folders[0]!.lists);
+	// console.log(folders[0]!.lists);
 
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
 	const tasks = await api.getTasks("901522227733", options);
 	console.log(tasks);
-	console.log(tasks.last_page);
+	// console.log(tasks.last_page);
 }
 
 export async function testMapClickupResponseToTasks(): Promise<Task[]> {
@@ -127,19 +127,19 @@ export async function testMapClickupResponseToTasks(): Promise<Task[]> {
 	const teams = await api.getTeams();
 	console.log("ClickupAPI\n\n ");
 	console.log(inspect(teams, { depth: null, colors: true }));
-	const teamId = teams.teams[0]!.id;
+	const teamId = teams[0]!.id;
 	const spaces = await api.getSpaces(teamId);
 	console.log("Spaces \n\n", inspect(spaces, { depth: null, colors: true }));
-	const spaceId = spaces.spaces[0]!.id;
+	const spaceId = spaces[0]!.id;
 	console.log(spaceId);
 	const folders = await api.getFolders(spaceId)
-	console.log(folders.folders[0]!.lists);
+	// console.log(folders[0]!.lists);
 
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
 	const _tasks = await api.getTasks("901522227733", options);
 
-	let tasks = taskMapClickupResponses(_tasks.tasks);
+	let tasks = taskMapClickupResponses(_tasks);
 	console.log(tasksToString(tasks));
 
 	return tasks;
@@ -229,11 +229,11 @@ export async function testWorkFlow() {
 	const apiKey = await readFile("testApiKey", 'utf8');
 	let api = ApiService.getInstance(apiKey);
 	const teams = await api.getTeams();
-	const teamId = teams.teams[0]!.id;
+	const teamId = teams[0]!.id;
 	const spaces = await api.getSpaces(teamId);
-	const spaceId = spaces.spaces[0]!.id;
+	const spaceId = spaces[0]!.id;
 	const folders = await api.getFolders(spaceId)
-	const folder = folders.folders.find((f: any) => f.name === "Projects");
+	const folder = folders.find((f: any) => f.name === "Projects");
 	if (!folder) throw new Error("Folder not found");
 	console.log("Found folder:", folder);
 	console.log("Lists in folder:", folder.lists);
@@ -251,7 +251,7 @@ export async function testWorkFlow() {
 	// if (!cacheExists) {
 	//   console.log("Cache not found, fetching from remote and creating cache.md...");
 	const _tasks = await api.getTasks(list.id, options);
-	let tasks = taskMapClickupResponses(_tasks.tasks);
+	let tasks = taskMapClickupResponses(_tasks);
 	local_cache = TaskCache.fromTasks(tasks);
 	//   const cacheString = local_cache.toString();
 	//   const now = new Date();
@@ -267,7 +267,7 @@ export async function testWorkFlow() {
 	console.log(local_cache.toString());
 	// Get Remote for diff checking
 	const _remote_tasks = await api.getTasks(list.id, options);
-	let remote_tasks = taskMapClickupResponses(_remote_tasks.tasks);
+	let remote_tasks = taskMapClickupResponses(_remote_tasks);
 	// let remote = cacheBuildTaskCache(remote_tasks);
 	let remote = TaskCache.fromTasks(remote_tasks);
 	// Generate Diff

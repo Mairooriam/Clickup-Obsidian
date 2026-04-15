@@ -1,20 +1,27 @@
-export * from "./getSpaces.js" //TODO: REMOVE IN FUTURE
-export * from "./getTasks.js"//TODO: REMOVE IN FUTURE
-export * from "./getFolders.js"//TODO: REMOVE IN FUTURE
-export * from "./createTask.js"//TODO: REMOVE IN FUTURE
-import { _Clickup_Team } from "./getTeams.js"
-import { _Clickup_Space } from "./getSpaces.js"
-import { _Clickup_Folder } from "./getFolders.js"
+import { _Clickup_Team, _Clickup_Teams } from "./getTeams.js"
+import { _Clickup_Space, _Clickup_Spaces } from "./getSpaces.js"
+import { _Clickup_Folder, _Clickup_Folders } from "./getFolders.js"
+import { _Clickup_Task, _Clickup_Tasks } from "./getTasks.js"
+import { _Clickup_List } from "./getLists.js"
+
+
+export type { _Clickup_Teams } from "./getTeams.js"
+export type { _Clickup_Spaces } from "./getSpaces.js"
+export type { _Clickup_Folders } from "./getFolders.js"
 
 
 // TEAMS 
-export function TeamToSlimTeam(team: _Clickup_Team): Team {
+export function ClickupTeamToTeam(team: _Clickup_Team): Team {
 	return {
 		id: team.id,
 		name: team.name,
 		spaces: [],
 	};
 }
+
+// export function ClickupTeamsToTeams(teams: _Clickup_Teams): Team[] {
+// 	return teams.teams.map(ClickupTeamToTeam);
+// }
 
 export interface Team {
 	id: string;
@@ -23,13 +30,18 @@ export interface Team {
 }
 
 // SPACES
-export function ClickupSpaceToSpace(team: _Clickup_Space): Space {
+
+export function ClickupSpaceToSpace(spaces: _Clickup_Space): Space {
 	return {
-		id: team.id,
-		name: team.name,
+		id: spaces.id,
+		name: spaces.name,
 		folders: [],
 	}
 }
+
+// export function ClickupSpacesToSpaces(spaces: _Clickup_Spaces): Space[] {
+// 	return spaces.Spaces.map(ClickupSpaceToSpace);
+// }
 
 export interface Space {
 	id: string;
@@ -38,21 +50,57 @@ export interface Space {
 }
 
 // FOLDERS
-
-export function ClickupFolderToFolder(f: _Clickup_Folder): Folder {
+export function ClickupFolderToFolder(folder: _Clickup_Folder): Folder {
 	return {
-		id: f.id,
-		name: f.name,
-		orderindex: f.orderindex,
-		taskCount: f.task_count,
+		id: folder.id,
+		name: folder.name,
+		orderIndex: folder.orderindex,
+		taskCount: folder.task_count,
+		lists: folder.lists.map(ClickupListToList)
 	}
-
 }
+
+// export function ClickupFolderToFolders(folders: _Clickup_Folders): Folder[] {
+// 	return folders.folders.map(ClickupFolderToFolder);
+// }
 
 export interface Folder {
 	id: string;
 	name: string;
-	orderindex: number;
+	orderIndex: number;
 	taskCount: string; //TODO: check if really string or if number is good?
+	lists: List[];
+}
+
+// LISTS
+export interface List {
+	id: string;
+	name: string;
+	orderIndex: number;
+}
+
+export function ClickupListToList(list: _Clickup_List): List {
+	return {
+		id: list.id,
+		name: list.name,
+		orderIndex: list.orderindex,
+	}
+}
+
+// TASKS
+export interface Task {
+	id: string;
+	name: string;
+	parent?: string;
+	top_level_parent?: string;
+}
+
+export function ClickupTaskToTask(task: _Clickup_Task): Task {
+	return {
+		id: task.id,
+		name: task.name,
+		parent: task.parent ?? undefined,
+		top_level_parent: task.top_level_parent ?? undefined,
+	};
 }
 
