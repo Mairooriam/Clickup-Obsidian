@@ -3,11 +3,13 @@ import { TokenType } from "./lexer.js"
 import { Task } from "./apiTypes/index.js"
 import { generateId } from "./id.js";
 
+import { Color, Colors, toColor } from "./utils/colors.js";
+import { Logger } from "./utils/logger.js";
 
-function taskFromToken(id: string, level: number, name: string, flags?: Record<string, any>): Task {
-    const task = new Task(id, level, name);
-    if (flags) Object.assign(task, flags);
-    return task;
+function taskFromToken(id: string, level: number, name: string, color: Color, flags?: Record<string, any>): Task {
+	const task = new Task(id, level, name, color);
+	if (flags) Object.assign(task, flags);
+	return task;
 }
 
 export class Parser {
@@ -39,12 +41,42 @@ export class Parser {
 
 	parse(): Task[] {
 		const allTasks: Task[] = [];
+		let color: Color = Colors.default;
+		let htmlOpen = false;	
+		
 		while (!this.isToken(TokenType.EOF)) {
 
-			if (this.isToken(TokenType.NEWLINE)) {
+			if (
+				this.isToken(TokenType.HTML_OPEN) &&
+				this.currentToken.flags &&
+				typeof this.currentToken.flags.style === "string"
+			) {
+				const style = this.currentToken.flags.style;
+				const match = style.match(/color\s*:\s*([^;]+)/i);
+				if (match) {
+                    color = toColor(match[1]!.trim()) ?? Colors.default;
+                    htmlOpen = true;
+				}
 				this.next();
 				continue;
 			}
+
+			if (this.isToken(TokenType.HTML_CLOSE)) {
+				color = Colors.default;
+				this.next();
+				continue;
+			}
+
+            if (this.isToken(TokenType.NEWLINE)) {
+                if (htmlOpen) {
+                    Logger.warn("Malformed input: span not closed before newline");
+                    color = Colors.default;
+                    htmlOpen = false;
+                }
+                this.next();
+                continue;
+            }
+
 
 			let indent = 0;
 			if (this.isToken(TokenType.INDENT)) {
@@ -74,10 +106,10 @@ export class Parser {
 				continue;
 			}
 
-            const task = taskFromToken(generateId("placeholder"), indent, this.currentToken.value, this.currentToken.flags);
-            this.next();
+			const task = taskFromToken(generateId("placeholder"), indent, this.currentToken.value, color, this.currentToken.flags);
+			this.next();
 
-            allTasks.push(task);
+			allTasks.push(task);
 		}
 
 		return allTasks;

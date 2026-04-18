@@ -30,17 +30,23 @@ export function testLexer(): void {
 }
 
 
-export function testLexerWithColors(): void {
+export function testLexerAndParserWithColors(): void {
+	//TODO: not handling malformed html
 	const testInput = `
 <span style="color:red">- Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]</span>
-<span style="color:green">	- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]</span>
+<span style="color:green">	 - Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]</span>
 <span style="color:blue">- Task 1 [_brand:TaskFlags] [parent:null] [id:86c8we387] [top_level_parnet:null]</span>
-<span style="color:orange">	- Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]</span>
+<span style="color:orange">	 - Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]</span>
 	`;
 	const lexer = new Lexer(testInput);
 	const tokens = lexer.tokenize();
+	const parser = new Parser(tokens);
+	const tasks = parser.parse();
 	console.log("Tesing Lexer.");
 	console.log(tokens);
+	console.log("Tesing Parser.");
+	console.log(tasks);
+
 }
 
 export function testParser(): void {
@@ -356,7 +362,7 @@ export function testDiffColor() {
 
 //
 // testLexer();
-testLexerWithColors();
+testLexerAndParserWithColors();
 // testParser();
 // testResolveParents();
 // testToString();
