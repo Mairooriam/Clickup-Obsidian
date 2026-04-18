@@ -72,27 +72,41 @@ export class Lexer {
 	}
 
 	parseTextWithFlags(text: string): { text: string; flags: Record<string, string> } {
-		// Parse [key:value] flags
-		const flagPattern = /\[([^:]+):([^\]]+)\]/g;
 		const flags: Record<string, string> = {};
-		let match;
-
-		while ((match = flagPattern.exec(text)) !== null) {
-			if (match[1] !== undefined && match[2] !== undefined) {
-				const key = match[1].trim();
-				const value = match[2].trim();
+		let cleanText = '';
+		let i = 0;
+		while (i < text.length) {
+			if (text[i] === '[') {
+				const start = i;
+				const colonIdx = text.indexOf(':', i + 1);
+				if (colonIdx === -1) {
+					// No colon, treat as normal text
+					cleanText += text[i];
+					i++;
+					continue;
+				}
+				const closeIdx = text.indexOf(']', colonIdx + 1);
+				const wrongCloseIdx = text.indexOf('}', colonIdx + 1);
+				if (closeIdx === -1 || (wrongCloseIdx !== -1 && wrongCloseIdx < closeIdx)) {
+					// Found } before ], invalid flag
+					console.warn(`Invalid flag detected: missing closing ']' in "${text.slice(start, wrongCloseIdx + 1)}"`);
+					i = wrongCloseIdx + 1;
+					continue;
+				}
+				const key = text.slice(i + 1, colonIdx).trim();
+				const value = text.slice(colonIdx + 1, closeIdx).trim();
 				flags[key] = value;
+				i = closeIdx + 1;
+			} else {
+				cleanText += text[i];
+				i++;
 			}
 		}
-
-		const cleanText = text.replace(/\[([^:]+):([^\]]+)\]/g, '').trim();
-
 		return {
-			text: cleanText,
+			text: cleanText.trim(),
 			flags: flags
 		};
 	}
-
 	private countIndent(): number {
 		let count = 0;
 		while (!this.isAtEnd() && (this.current() === '\t' || this.current() === ' ')) {

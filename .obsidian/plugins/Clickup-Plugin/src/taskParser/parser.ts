@@ -43,7 +43,6 @@ export class Parser {
 		const allTasks: Task[] = [];
 		let color: Color = Colors.default;
 		let htmlOpen = false;	
-		
 		while (!this.isToken(TokenType.EOF)) {
 
 			if (

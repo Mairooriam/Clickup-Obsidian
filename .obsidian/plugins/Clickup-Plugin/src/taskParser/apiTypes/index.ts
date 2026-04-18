@@ -108,11 +108,16 @@ export class Task {
 		this.color = color;
 	}
 
-	toString(): string {
-		const indent = "\t".repeat(this.level);
-		const parent = this.parent ? ` [parent:${this.parent}]` : "";
-		return `${indent}- ${this.name} [id:${this.id}]${parent}`;
-	}
+    toString(): string {
+        const indent = "\t".repeat(this.level);
+        const parent = this.parent ? ` [parent:${this.parent}]` : "";
+        const content = `${indent}- ${this.name} [id:${this.id}]${parent}`;
+        
+        if (this.color) {
+            return `<span style="color:${this.color};white-space:pre">${content}</span>`;
+        }
+        return content;
+    }
 }
 
 export function tasksToString(tasks: Task[]): string {

@@ -1,5 +1,8 @@
 import { Task } from "./apiTypes/index.js";
+import { Lexer } from "./lexer.js";
+import { Parser } from "./parser.js";
 import { Stack } from "./types.js"
+import { Color } from "./utils/colors.js";
 
 export function debugPrint(msg: string) {
 	const err = new Error();
@@ -111,6 +114,12 @@ export class TaskCache {
 		return tree;
 	}
 
+	static fromMd(md: string): TaskCache {
+		const lexer = new Lexer(md);
+		const parser = new Parser(lexer.tokenize());
+		return this.fromTasks(parser.parse());
+	}
+
 	addNode(task: Task): boolean {
 		if (this.map.has(task.id)) return false;
 
@@ -199,6 +208,17 @@ export class TaskCache {
 		};
 		this.roots.forEach(visit);
 		return lines.join("\n");
+	}
+
+	setColorForAll(color: Color): void {
+		this.map.forEach(task => task.color = color);
+	}
+
+	setColorForSubtree(id: string, color: Color): void {
+		const task = this.map.get(id);
+		if (!task) return;
+		task.color = color;
+		this.children.get(id)?.forEach(child => this.setColorForSubtree(child.id, color));
 	}
 }
 

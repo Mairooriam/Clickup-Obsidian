@@ -12,6 +12,7 @@ import { inspect } from "util";
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./taskParser/ApiService";
 import { Task } from "./taskParser/apiTypes/index"
 import { Lexer } from "taskParser/lexer"
+import { Colors } from 'taskParser/utils/colors';
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -75,6 +76,35 @@ export default class MyPlugin extends Plugin {
 				console.log(cacheString);
 				console.log(local);
 				editor.replaceSelection(cacheString);
+			}
+		});
+		this.addCommand({
+			id: 'check-diff',
+			name: 'DiffChecker',
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				new SampleModal(this.app).open();
+				// const apiKey = await readFile("../../../../testApiKey", 'utf8');
+				// let api = ApiService.getInstance(apiKey);
+				const apiKey = this.settings.apiKey;
+				if (!apiKey) {
+					new Notice("API key not set. Please enter it in the plugin settings.");
+					return;
+				}
+				this.api = ApiService.getInstance(apiKey);
+				let selection = editor.getSelection();
+				const lexer = new Lexer(selection);
+				const tokens = lexer.tokenize()
+				console.log(tokens);
+				const parser = new Parser(tokens);
+				const tasks = parser.parse();
+				console.log(tasks);
+				const cache = TaskCache.fromTasks(tasks);
+				console.log(cache);
+				cache.setColorForAll(Colors.Green);
+				editor.replaceSelection(cache.toString());
+				// console.log("string: \n", cache.toString());
+
+
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
