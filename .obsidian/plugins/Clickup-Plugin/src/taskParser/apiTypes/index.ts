@@ -4,10 +4,13 @@ import { _Clickup_Folder, _Clickup_Folders } from "./getFolders.js"
 import { _Clickup_Task, _Clickup_Tasks } from "./getTasks.js"
 import { _Clickup_List } from "./getLists.js"
 
+import { Color } from "taskParser/utils/colors.js"
 
 export type { _Clickup_Teams } from "./getTeams.js"
 export type { _Clickup_Spaces } from "./getSpaces.js"
 export type { _Clickup_Folders } from "./getFolders.js"
+
+
 
 
 // TEAMS 
@@ -88,17 +91,21 @@ export function ClickupListToList(list: _Clickup_List): List {
 }
 
 // TASKS
+
+
 export class Task {
 	id: string;
-	level: number;
+	level: number; // used in display. not in clickup
 	name: string;
+	color: Color; // used in display. not in clickup
 	parent?: string;
 	top_level_parent?: string;
 
-	constructor(id: string, level: number, name: string) {
+	constructor(id: string, level: number, name: string, color: Color = Colors.default) {
 		this.id = id;
 		this.level = level;
 		this.name = name;
+		this.color = color;
 	}
 
 	toString(): string {
