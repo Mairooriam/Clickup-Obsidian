@@ -4,7 +4,7 @@ import { _Clickup_Folder, _Clickup_Folders } from "./getFolders.js"
 import { _Clickup_Task, _Clickup_Tasks } from "./getTasks.js"
 import { _Clickup_List } from "./getLists.js"
 
-import { Color } from "taskParser/utils/colors.js"
+import { Colors, toColor, Color } from "taskParser/utils/colors.js";
 
 export type { _Clickup_Teams } from "./getTeams.js"
 export type { _Clickup_Spaces } from "./getSpaces.js"

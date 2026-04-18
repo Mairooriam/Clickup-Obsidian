@@ -1,6 +1,6 @@
-import { Logger } from "./utils/logger.js";
+import { Logger } from "./logger.js";
 
-type HexColor = string & { __brand: "HexColor" };
+export type HexColor = string & { __brand: "HexColor" };
 
 export const Colors = {
     default: "" as "",
