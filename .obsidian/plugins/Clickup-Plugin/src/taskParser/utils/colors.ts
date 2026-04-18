@@ -7,6 +7,7 @@ export const Colors = {
     Red: "#ff0000" as HexColor,
     Green: "#00ff00" as HexColor,
     Blue: "#0000ff" as HexColor,
+	White: "#fafafa" as HexColor,
 } as const;
 
 const namedColors = ["red", "green", "blue", "orange", "purple", "yellow", "pink", "black", "white"] as const;

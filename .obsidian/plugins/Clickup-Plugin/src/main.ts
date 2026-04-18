@@ -2,7 +2,7 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
 
 // Remember to rename these classes and interfaces!
-
+import { SuggestModal } from "obsidian";
 import { Parser } from "./taskParser/parser"
 import { readFile } from "fs/promises";
 import { dirname } from "path";
@@ -87,31 +87,45 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
+
 				this.api = ApiService.getInstance(apiKey);
+				//Local
 				let selection = editor.getSelection();
 				const lexer = new Lexer(selection);
-				const tokens = lexer.tokenize()
-				console.log(tokens);
-				const parser = new Parser(tokens);
-				const tasks = parser.parse();
-				console.log(tasks);
-				const cache = TaskCache.fromTasks(tasks);
-				console.log(cache);
-				// Use static toggle for color
-				if (MyPlugin.useColor) {
-					cache.setColorForAll(Colors.Green);
-					MyPlugin.useColor = false;
-				} else {
-					cache.setColorForAll(Colors.default);
-					MyPlugin.useColor = true;
-				}
-				editor.replaceSelection(cache.toString());
-				console.log(cache.toString());
+				let local_cache = TaskCache.fromMd(selection);
+				// Fetch
+				const teams = await this.api.getTeams();
+				const teamId = teams[0]!.id;
+				const spaces = await this.api.getSpaces(teamId);
+				const spaceId = spaces[0]!.id;
+				const folders = await this.api.getFolders(spaceId)
+				const folder = folders.find((f: any) => f.name === "Projects");
+				if (!folder) throw new Error("Folder not found");
+				const list = folder.lists.find((f: any) => f.name === "API_test_lista");
+				if (!list) throw new Error("list not found");
+				let options: GetTasksOptions = {};
+				options.subtasks = true;
+
+				//remote
+				//TODO: way of getting this.
+				const remote_tasks = await this.api.getTasks(list.id, options);
+				let remote = TaskCache.fromTasks(remote_tasks);
+				//Diff
+				let diff = cacheGenerateDiff(local_cache, remote);
+				console.log("Diff", diff);
+
+				local_cache.setColorForAll(Colors.White);
+				diff.toPost.forEach(task => local_cache.setColorForSubtree(task.id, Colors.Green));
+				diff.toPut.forEach(task => local_cache.setColorForSubtree(task.id, Colors.Blue));
+				diff.toDelete.forEach(task => local_cache.setColorForSubtree(task.id, Colors.Red));
+
+				editor.replaceSelection(local_cache.toString());
+				console.log(local_cache.toString());
 			}
 		});
 		this.addCommand({
 			id: 'test-parse-md',
-			name: 'parse Test',
+			name: 'Clickup Remove color',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const apiKey = this.settings.apiKey;
 				if (!apiKey) {
@@ -126,13 +140,53 @@ export default class MyPlugin extends Plugin {
 				const tasks = parser.parse();
 				const cache = TaskCache.fromTasks(tasks);
 				// Use static toggle for color
-				if (MyPlugin.useColor) {
-					cache.setColorForAll(Colors.Green);
-				} else {
-					cache.setColorForAll(Colors.default);
+				cache.setColorForAll(Colors.default);
+
+				// if (MyPlugin.useColor) {
+				// 	cache.setColorForAll(Colors.Green);
+				// 	MyPlugin.useColor = false;
+				// } else {
+				// 	cache.setColorForAll(Colors.default);
+				// 	MyPlugin.useColor = true;
+				// }
+				editor.replaceSelection(cache.toString());
+
+			}
+		});
+		this.addCommand({
+			id: 'get-remote-to-cursor',
+			name: 'get remote to cursor',
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				const apiKey = this.settings.apiKey;
+				if (!apiKey) {
+					new Notice("API key not set. Please enter it in the plugin settings.");
+					return;
 				}
-				console.log(cache);
-				console.log(cache.toString());
+				this.api = ApiService.getInstance(apiKey);
+
+				const teams = await this.api.getTeams();
+				new TeamSuggestModal(this.app, teams, async (team) => {
+					const spaces = await this.api.getSpaces(team.id);
+					new TeamSuggestModal(this.app, spaces, async (space) => {
+						const folders = await this.api.getFolders(space.id);
+						new TeamSuggestModal(this.app, folders, async (folder) => {
+							const lists = folder.lists || [];
+							if (lists.length === 0) {
+								new Notice("No lists found in this folder.");
+								return;
+							}
+							// Add a modal for lists here
+							new TeamSuggestModal(this.app, lists, async (list) => {
+								let options: GetTasksOptions = {};
+								options.subtasks = true;
+								const tasks = await this.api.getTasks(list.id, options);
+								let local = TaskCache.fromTasks(tasks);
+								const cacheString = local.toString();
+								editor.replaceSelection(cacheString);
+							}).open();
+						}).open();
+					}).open();
+				}).open();
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
@@ -189,7 +243,20 @@ export default class MyPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 }
-
+class TeamSuggestModal extends SuggestModal<any> {
+    constructor(app: App, private teams: any[], private onChoose: (team: any) => void) {
+        super(app);
+    }
+    getSuggestions(query: string) {
+        return this.teams.filter(t => t.name.toLowerCase().includes(query.toLowerCase()));
+    }
+    renderSuggestion(team: any, el: HTMLElement) {
+        el.setText(team.name);
+    }
+    onChooseSuggestion(team: any) {
+        this.onChoose(team);
+    }
+}
 class SampleModal extends Modal {
 	constructor(app: App) {
 		super(app);

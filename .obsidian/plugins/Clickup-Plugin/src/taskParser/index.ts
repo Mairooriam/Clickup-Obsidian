@@ -299,6 +299,8 @@ export async function testWorkFlow() {
 	// console.log(inspect(local_cache.toString(), false, null));
 	console.log(local_cache.toString());
 	// console.log("name:%s, id:%s dat_created:%s list%s, url%s", r.name, r.id, r.date_created, r.list, r.url);
+
+
 	// console.log(inspect(diff, false, null));
 	// Push diff
 
