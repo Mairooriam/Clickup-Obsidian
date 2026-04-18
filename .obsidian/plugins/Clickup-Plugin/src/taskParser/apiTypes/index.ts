@@ -88,19 +88,34 @@ export function ClickupListToList(list: _Clickup_List): List {
 }
 
 // TASKS
-export interface Task {
+export class Task {
 	id: string;
+	level: number;
 	name: string;
 	parent?: string;
 	top_level_parent?: string;
+
+	constructor(id: string, level: number, name: string) {
+		this.id = id;
+		this.level = level;
+		this.name = name;
+	}
+
+	toString(): string {
+		const indent = "\t".repeat(this.level);
+		const parent = this.parent ? ` [parent:${this.parent}]` : "";
+		return `${indent}- ${this.name} [id:${this.id}]${parent}`;
+	}
+}
+
+export function tasksToString(tasks: Task[]): string {
+	return tasks.map(t => t.toString()).join("\n");
 }
 
 export function ClickupTaskToTask(task: _Clickup_Task): Task {
-	return {
-		id: task.id,
-		name: task.name,
-		parent: task.parent ?? undefined,
-		top_level_parent: task.top_level_parent ?? undefined,
-	};
+	const t = new Task(task.id, 0, task.name);
+	t.parent = task.parent ?? undefined;
+	t.top_level_parent = task.top_level_parent ?? undefined;
+	return t;
 }
 

@@ -7,10 +7,10 @@ import { Parser } from "./taskParser/parser"
 import { readFile } from "fs/promises";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-import { tasksResolveParents, taskMatch, cacheGenerateDiff, createTask, TaskCache } from "./taskParser/core"
+import { tasksResolveParents, taskMatch, cacheGenerateDiff, TaskCache } from "./taskParser/core"
 import { inspect } from "util";
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./taskParser/ApiService";
-import { Task, taskMapClickupResponses, tasksToString } from "./taskParser/types"
+import { Task } from "./taskParser/apiTypes/index"
 import { Lexer } from "taskParser/lexer"
 
 export default class MyPlugin extends Plugin {
@@ -30,15 +30,15 @@ export default class MyPlugin extends Plugin {
 		const statusBarItemEl = this.addStatusBarItem();
 		statusBarItemEl.setText('Status bar text');
 
-        if (this.settings.apiKey && this.settings.team.refreshOnOpen) {
-            try {
-                const teams = await this.api.getTeamsSlim();
-                this.settings.team.data = teams;
-                await this.saveSettings();
-            } catch (e) {
-                console.error("Failed to fetch teams on load:", e);
-            }
-        }
+		if (this.settings.apiKey && this.settings.team.refreshOnOpen) {
+			try {
+				const teams = await this.api.getTeams();
+				this.settings.team.data = teams;
+				await this.saveSettings();
+			} catch (e) {
+				console.error("Failed to fetch teams on load:", e);
+			}
+		}
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
@@ -56,11 +56,11 @@ export default class MyPlugin extends Plugin {
 				this.api = ApiService.getInstance(apiKey);
 				// If teams not set in settings browse here and select.
 				const teams = await this.api.getTeams();
-				const teamId = teams.teams[0]!.id;
+				const teamId = teams[0]!.id;
 				const spaces = await this.api.getSpaces(teamId);
-				const spaceId = spaces.spaces[0]!.id;
+				const spaceId = spaces[0]!.id;
 				const folders = await this.api.getFolders(spaceId)
-				const folder = folders.folders.find((f: any) => f.name === "Projects");
+				const folder = folders.find((f: any) => f.name === "Projects");
 				if (!folder) throw new Error("Folder not found");
 				console.log("Found folder:", folder);
 				console.log("Lists in folder:", folder.lists);
@@ -69,8 +69,7 @@ export default class MyPlugin extends Plugin {
 				console.log("Found list: name:%s id:%s", list.name, list.id);
 				let options: GetTasksOptions = {};
 				options.subtasks = true;
-				const _tasks = await this.api.getTasks(list.id, options);
-				let tasks = taskMapClickupResponses(_tasks.tasks);
+				const tasks = await this.api.getTasks(list.id, options);
 				let local = TaskCache.fromTasks(tasks);
 				const cacheString = local.toString();
 				console.log(cacheString);

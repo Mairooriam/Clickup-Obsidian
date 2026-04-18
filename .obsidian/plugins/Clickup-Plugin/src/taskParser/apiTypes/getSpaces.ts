@@ -1,6 +1,6 @@
 // For internal use
 export interface _Clickup_Spaces {
-	Spaces: _Clickup_Space[];
+	spaces: _Clickup_Space[];
 }
 
 export interface _Clickup_Space {

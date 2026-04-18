@@ -138,7 +138,7 @@ export class ApiService {
 
 	public async getSpaces(team_id: string): Promise<Space[]> {
 		const response = await this.fetcher<_Clickup_Spaces>(`team/${team_id}/space`);
-		return response.json.Spaces.map(ClickupSpaceToSpace);
+		return response.json.spaces.map(ClickupSpaceToSpace);
 	}
 
 	public async getFolders(space_id: string): Promise<Folder[]> {

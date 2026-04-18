@@ -5,17 +5,11 @@ import { resolve } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
-
-// cacheBuildTaskCache
-import { tasksResolveParents, taskMatch, cacheGenerateDiff, createTask, TaskCache } from "./core.js"
-//skTODO: switch to lodash-es
-// import lodash, { forEach } from "lodash";
-import { tasksToString } from "./types.js";
-// const { isEqual } = lodash;
+import { tasksResolveParents, taskMatch, cacheGenerateDiff, TaskCache } from "./core.js"
 import { inspect } from "util";
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./ApiService.js";
-import { Task, taskMapClickupResponses } from "./types.js"
 import { Lexer } from "./lexer.js"
+import { ClickupTaskToTask, Task, tasksToString } from "./apiTypes/index.js"
 
 //TODO: make proper unit tests
 export function testLexer(): void {
@@ -82,26 +76,25 @@ export function testResolveParents(): void {
 
 export function testToString(): void {
 	const testInput = `
-    - Task 1 [id:abc123] [priority:high]
-    \t- Task 1.1 [assignee:john] [status:pending]
-    \t\t- Task 1.1.1 [type:bug] [urgent:true]
-    - Task 2 [priority:low]
-    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
-    - [x] Task with checkbox completed [status:review] [assignee:jane]
-
-    `;
+- Task 1 [id:abc123] [priority:high]
+\t- Task 1.1 [assignee:john] [status:pending]
+\t\t- Task 1.1.1 [type:bug] [urgent:true]
+- Task 2 [priority:low]
+- [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+- [x] Task with checkbox completed [status:review] [assignee:jane]
+`;
 
 	const lexer = new Lexer(testInput);
 	const tokens = lexer.tokenize();
+	console.log(tokens);
 	const parser = new Parser(tokens);
-	// console.log(tokens);
 	const tasks = parser.parse();
 	tasksResolveParents(tasks);
 	console.log("after toString\n\n", tasksToString(tasks));
 }
 
 export async function testClickupAPI() {
-	const apiKey = await readFile("testApiKey", 'utf8');
+	const apiKey = await readFile("C:/Users/35850/Desktop/repositories/Scratch/clickup/testApikey", 'utf8');
 	let api = ApiService.getInstance(apiKey);
 	const teams = await api.getTeams();
 	console.log("ClickupAPI\n\n ");
@@ -112,17 +105,16 @@ export async function testClickupAPI() {
 	const spaceId = spaces[0]!.id;
 	console.log(spaceId);
 	const folders = await api.getFolders(spaceId)
-	// console.log(folders[0]!.lists);
+	console.log(folders);
 
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
 	const tasks = await api.getTasks("901522227733", options);
 	console.log(tasks);
-	// console.log(tasks.last_page);
 }
 
 export async function testMapClickupResponseToTasks(): Promise<Task[]> {
-	const apiKey = await readFile("testApiKey", 'utf8');
+	const apiKey = await readFile("C:/Users/35850/Desktop/repositories/Scratch/clickup/testApikey", 'utf8');
 	let api = ApiService.getInstance(apiKey);
 	const teams = await api.getTeams();
 	console.log("ClickupAPI\n\n ");
@@ -133,43 +125,38 @@ export async function testMapClickupResponseToTasks(): Promise<Task[]> {
 	const spaceId = spaces[0]!.id;
 	console.log(spaceId);
 	const folders = await api.getFolders(spaceId)
-	// console.log(folders[0]!.lists);
+	// console.log(folders);
 
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
 	const _tasks = await api.getTasks("901522227733", options);
 
-	let tasks = taskMapClickupResponses(_tasks);
-	console.log(tasksToString(tasks));
+	console.log(tasksToString(_tasks));
 
-	return tasks;
+	return _tasks;
 }
 
 export function testCache(tasks: Task[]): void {
 	let taskCache = TaskCache.fromTasks(tasks);
 	console.log("testCache\n\n", taskCache);
-	console.log("testCache User input\n\n", taskCache.toString());
 }
 
 export function testCacheFromUserMd() {
 	const testInput = `
-    - Task 1 [id:abc123] [priority:high]
-    \t- Task 1.1 [assignee:john] [status:pending]
-    \t\t- Task 1.1.1 [type:bug] [urgent:true]
-    - Task 2 [priority:low]
-    - [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
-    - [x] Task with checkbox completed [status:review] [assignee:jane]
-
+- Task 1 [id:abc123] [priority:high]
+\t- Task 1.1 [assignee:john] [status:pending]
+\t\t- Task 1.1.1 [type:bug] [urgent:true]
+- Task 2 [priority:low]
+- [ ] Task with checkbox uncompleted [status:review] [assignee:jane]
+- [x] Task with checkbox completed [status:review] [assignee:jane]
     `;
 
 	const lexer = new Lexer(testInput);
 	const tokens = lexer.tokenize();
 	const parser = new Parser(tokens);
-	// console.log(tokens);
 	const tasks = parser.parse();
 	tasksResolveParents(tasks);
 
-	// let taskCache = cacheBuildTaskCache(tasks);
 	let taskCache = TaskCache.fromTasks(tasks)
 	console.log("testCache User input\n\n", taskCache);
 
@@ -250,8 +237,7 @@ export async function testWorkFlow() {
 
 	// if (!cacheExists) {
 	//   console.log("Cache not found, fetching from remote and creating cache.md...");
-	const _tasks = await api.getTasks(list.id, options);
-	let tasks = taskMapClickupResponses(_tasks);
+	const tasks = await api.getTasks(list.id, options);
 	local_cache = TaskCache.fromTasks(tasks);
 	//   const cacheString = local_cache.toString();
 	//   const now = new Date();
@@ -266,8 +252,7 @@ export async function testWorkFlow() {
 
 	console.log(local_cache.toString());
 	// Get Remote for diff checking
-	const _remote_tasks = await api.getTasks(list.id, options);
-	let remote_tasks = taskMapClickupResponses(_remote_tasks);
+	const remote_tasks = await api.getTasks(list.id, options);
 	// let remote = cacheBuildTaskCache(remote_tasks);
 	let remote = TaskCache.fromTasks(remote_tasks);
 	// Generate Diff
@@ -278,15 +263,15 @@ export async function testWorkFlow() {
 		console.log("before post\n\n,", local_cache.toString());
 		const op: CreateTaskOptions = {
 			name: t.name,
-			parent: t.flags?.parent ?? null,
+			parent: t.parent ?? null,
 		};
 		const response = await api.createTask(list_id, op)
 		// const response = await api.createTaskTemp(list_id, op);
 
-		if (!t.flags?.id) {
+		if (!t.id) {
 			throw new Error("shouldn't happen. Check code that the usage is valid");
 		}
-		const oldKey = String(t.flags.id);
+		const oldKey = String(t.id);
 		const newKey = String(response.id);
 
 		local_cache.updateNodeId(oldKey, newKey);
@@ -318,10 +303,20 @@ export function testCacheMethods() {
 	const cache = TaskCache.fromTasks(tasks);
 	console.log("Hello from cache \n", cache);
 	// console.log(iespect(cache.roots, { depth: 5, colors: true }));
-	cache.addNode(createTask("testName", null, "testId"));
-	cache.addNode(createTask("addingChild", "testId", "child"));
-	cache.addNode(createTask("testName2", "child", "child2"));
-	cache.addNode(createTask("testName3", "child", "child3"));
+	const t1 = new Task("testId", 0, "testName");
+	cache.addNode(t1);
+
+	const t2 = new Task("child", 0, "addingChild");
+	t2.parent = "testId";
+	cache.addNode(t2);
+
+	const t3 = new Task("child2", 0, "testName2");
+	t3.parent = "child";
+	cache.addNode(t3);
+
+	const t4 = new Task("child3", 0, "testName3");
+	t4.parent = "child";
+	cache.addNode(t4);
 
 	console.log("Hello from cache before remove\n", cache);
 	cache.removeNode("child");
@@ -350,11 +345,11 @@ export function testDiffColor() {
 // testParser();
 // testResolveParents();
 // testToString();
-//  testClickupAPI();
+// testClickupAPI();
 // testMapClickupResponseToTasks();
 // testCache(await testMapClickupResponseToTasks())
 // testCacheFromUserMd();
-testDiffChecker();
+// testDiffChecker();
 // testWorkFlow();
 // testCacheUtils();
 // testCacheMethods();
