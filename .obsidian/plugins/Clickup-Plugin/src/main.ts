@@ -17,7 +17,7 @@ import { Colors } from 'taskParser/utils/colors';
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	api: ApiService;
-
+	static useColor: boolean = true;
 	async onload() {
 		await this.loadSettings();
 		this.api = ApiService.getInstance(this.settings.apiKey);
@@ -82,9 +82,6 @@ export default class MyPlugin extends Plugin {
 			id: 'check-diff',
 			name: 'DiffChecker',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				new SampleModal(this.app).open();
-				// const apiKey = await readFile("../../../../testApiKey", 'utf8');
-				// let api = ApiService.getInstance(apiKey);
 				const apiKey = this.settings.apiKey;
 				if (!apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
@@ -100,11 +97,42 @@ export default class MyPlugin extends Plugin {
 				console.log(tasks);
 				const cache = TaskCache.fromTasks(tasks);
 				console.log(cache);
-				cache.setColorForAll(Colors.Green);
+				// Use static toggle for color
+				if (MyPlugin.useColor) {
+					cache.setColorForAll(Colors.Green);
+					MyPlugin.useColor = false;
+				} else {
+					cache.setColorForAll(Colors.default);
+					MyPlugin.useColor = true;
+				}
 				editor.replaceSelection(cache.toString());
-				// console.log("string: \n", cache.toString());
-
-
+				console.log(cache.toString());
+			}
+		});
+		this.addCommand({
+			id: 'test-parse-md',
+			name: 'parse Test',
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				const apiKey = this.settings.apiKey;
+				if (!apiKey) {
+					new Notice("API key not set. Please enter it in the plugin settings.");
+					return;
+				}
+				this.api = ApiService.getInstance(apiKey);
+				let selection = editor.getSelection();
+				const lexer = new Lexer(selection);
+				const tokens = lexer.tokenize()
+				const parser = new Parser(tokens);
+				const tasks = parser.parse();
+				const cache = TaskCache.fromTasks(tasks);
+				// Use static toggle for color
+				if (MyPlugin.useColor) {
+					cache.setColorForAll(Colors.Green);
+				} else {
+					cache.setColorForAll(Colors.default);
+				}
+				console.log(cache);
+				console.log(cache.toString());
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance

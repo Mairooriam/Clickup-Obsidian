@@ -42,7 +42,7 @@ export class Parser {
 	parse(): Task[] {
 		const allTasks: Task[] = [];
 		let color: Color = Colors.default;
-		let htmlOpen = false;	
+		let htmlOpen = false;
 		while (!this.isToken(TokenType.EOF)) {
 
 			if (
@@ -53,8 +53,8 @@ export class Parser {
 				const style = this.currentToken.flags.style;
 				const match = style.match(/color\s*:\s*([^;]+)/i);
 				if (match) {
-                    color = toColor(match[1]!.trim()) ?? Colors.default;
-                    htmlOpen = true;
+					color = toColor(match[1]!.trim()) ?? Colors.default;
+					htmlOpen = true;
 				}
 				this.next();
 				continue;
@@ -62,19 +62,20 @@ export class Parser {
 
 			if (this.isToken(TokenType.HTML_CLOSE)) {
 				color = Colors.default;
+				htmlOpen = false;
 				this.next();
 				continue;
 			}
 
-            if (this.isToken(TokenType.NEWLINE)) {
-                if (htmlOpen) {
-                    Logger.warn("Malformed input: span not closed before newline");
-                    color = Colors.default;
-                    htmlOpen = false;
-                }
-                this.next();
-                continue;
-            }
+			if (this.isToken(TokenType.NEWLINE)) {
+				if (htmlOpen) {
+					Logger.warn("Malformed input: span not closed before newline", this);
+					color = Colors.default;
+					htmlOpen = false;
+				}
+				this.next();
+				continue;
+			}
 
 
 			let indent = 0;
