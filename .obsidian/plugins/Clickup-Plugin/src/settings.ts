@@ -13,43 +13,43 @@ export interface SpaceSettings {
 	selected: string;
 }
 export interface FolderSettings {
-    data: any; //TODO: do same as on team etc. if its good
-    selected: string;
+	data: any; //TODO: do same as on team etc. if its good
+	selected: string;
 }
 export interface ListSettings {
-    data: any; //TODO: do same as on team etc. if its good
-    selected: string;
+	data: any; //TODO: do same as on team etc. if its good
+	selected: number;
 }
 
 export interface MyPluginSettings {
-    mySetting: string;
-    apiKey: string;
-    team: TeamSettings;
-    space: SpaceSettings;
-    folder: FolderSettings;
-    list: ListSettings;
+	mySetting: string;
+	apiKey: string;
+	team: TeamSettings;
+	space: SpaceSettings;
+	folder: FolderSettings;
+	list: ListSettings;
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
-    mySetting: 'default',
-    apiKey: "",
-    team: {
-        data: { teams: [] },
-        selected: "0",
-        refreshOnOpen: true,
-    },
-    space: {
-        data: { spaces: [] },
-        selected: "0",
-    },
-    folder: {
-        data: { folders: [] },
-        selected: "0",
-    },
-    list: {
-        data: { lists: [] },
-        selected: "0",
-    },
+	mySetting: 'default',
+	apiKey: "",
+	team: {
+		data: { teams: [] },
+		selected: "0",
+		refreshOnOpen: true,
+	},
+	space: {
+		data: { spaces: [] },
+		selected: "0",
+	},
+	folder: {
+		data: { folders: [] },
+		selected: "0",
+	},
+	list: {
+		data: { lists: [] },
+		selected: 0,
+	},
 }
 
 export class SampleSettingTab extends PluginSettingTab {
@@ -137,9 +137,9 @@ export class SampleSettingTab extends PluginSettingTab {
 			.setDesc('Selected List')
 			.addText(text => text
 				.setPlaceholder('List ID')
-				.setValue(selectedListId)
+				.setValue(String(selectedListId))
 				.onChange(async (value) => {
-					this.plugin.settings.list.selected = value;
+					this.plugin.settings.list.selected = Number(value);
 					await this.plugin.saveSettings();
 					this.display();
 				}));
@@ -206,46 +206,46 @@ export class SampleSettingTab extends PluginSettingTab {
 			});
 	}
 
-	    private displaySpaceSection(containerEl: HTMLElement) {
-        containerEl.createEl('h3', { text: 'Space' });
+	private displaySpaceSection(containerEl: HTMLElement) {
+		containerEl.createEl('h3', { text: 'Space' });
 
-        // Only show if a team is selected
-        if (this.plugin.settings.team.selected === "0") {
-            containerEl.createEl('div', { text: 'Select a team first.' });
-            return;
-        }
+		// Only show if a team is selected
+		if (this.plugin.settings.team.selected === "0") {
+			containerEl.createEl('div', { text: 'Select a team first.' });
+			return;
+		}
 
-        let refreshBtn = containerEl.createEl("button", { text: "Refresh spaces" });
-        let statusEl = containerEl.createSpan({ text: "" });
-        refreshBtn.onclick = async () => {
-            refreshBtn.disabled = true;
-            statusEl.setText("Refreshing...");
-            const spaces = await this.plugin.api.getSpacesSlim(this.plugin.settings.team.selected);
-            this.plugin.settings.space.data = spaces;
-            await this.plugin.saveSettings();
-            statusEl.setText("Spaces refreshed!");
-            refreshBtn.disabled = false;
-            this.display();
-        };
+		let refreshBtn = containerEl.createEl("button", { text: "Refresh spaces" });
+		let statusEl = containerEl.createSpan({ text: "" });
+		refreshBtn.onclick = async () => {
+			refreshBtn.disabled = true;
+			statusEl.setText("Refreshing...");
+			const spaces = await this.plugin.api.getSpacesSlim(this.plugin.settings.team.selected);
+			this.plugin.settings.space.data = spaces;
+			await this.plugin.saveSettings();
+			statusEl.setText("Spaces refreshed!");
+			refreshBtn.disabled = false;
+			this.display();
+		};
 
-        const spaceOptions: Record<string, string> = { "0": "None" };
-        this.plugin.settings.space.data.spaces.forEach(s => {
-            spaceOptions[s.id] = s.name;
-        });
+		const spaceOptions: Record<string, string> = { "0": "None" };
+		this.plugin.settings.space.data.spaces.forEach(s => {
+			spaceOptions[s.id] = s.name;
+		});
 
-        new Setting(containerEl)
-            .setName('Selected Space')
-            .setDesc('Choose your space')
-            .addDropdown(drop => {
-                drop
-                    .addOptions(spaceOptions)
-                    .setValue(this.plugin.settings.space.selected)
-                    .onChange(async (value) => {
-                        this.plugin.settings.space.selected = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-    }
+		new Setting(containerEl)
+			.setName('Selected Space')
+			.setDesc('Choose your space')
+			.addDropdown(drop => {
+				drop
+					.addOptions(spaceOptions)
+					.setValue(this.plugin.settings.space.selected)
+					.onChange(async (value) => {
+						this.plugin.settings.space.selected = value;
+						await this.plugin.saveSettings();
+					});
+			});
+	}
 }
 
 

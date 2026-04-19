@@ -2,6 +2,7 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
 
 // Remember to rename these classes and interfaces!
+import { Logger } from 'taskParser/utils/logger';
 import { SuggestModal } from "obsidian";
 import { Parser } from "./taskParser/parser"
 import { readFile } from "fs/promises";
@@ -43,10 +44,9 @@ export default class MyPlugin extends Plugin {
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simpl)',
+			id: 'get-remote',
+			name: 'get remote',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				new SampleModal(this.app).open();
 				// const apiKey = await readFile("../../../../testApiKey", 'utf8');
 				// let api = ApiService.getInstance(apiKey);
 				const apiKey = this.settings.apiKey;
@@ -71,7 +71,9 @@ export default class MyPlugin extends Plugin {
 				let options: GetTasksOptions = {};
 				options.subtasks = true;
 				const tasks = await this.api.getTasks(list.id, options);
+				Logger.log("Tasks: ", tasks);
 				let local = TaskCache.fromTasks(tasks);
+				Logger.log("cache", local)
 				const cacheString = local.toString();
 				console.log(cacheString);
 				console.log(local);
@@ -219,13 +221,27 @@ export default class MyPlugin extends Plugin {
 					return;
 				}
 				this.api = ApiService.getInstance(apiKey);
+				// Parse local
 				let selection = editor.getSelection();
 				const lexer = new Lexer(selection);
-				const tokens = lexer.tokenize()
+				const tokens = lexer.tokenize();
+				Logger.log("Tokens", tokens);
 				const parser = new Parser(tokens);
 				const tasks = parser.parse();
+				Logger.log("input", tasks);
 				const local_cache = TaskCache.fromTasks(tasks);
-				// let diff = cacheGenerateDiff(local_cache, remote);
+				console.log(local_cache);
+
+				//Get remote
+				let options: GetTasksOptions = {};
+				options.subtasks = true;
+				const remote_tasks = await this.api.getTasks(this.settings.list.selected, options);
+				let remote = TaskCache.fromTasks(remote_tasks);
+				
+				//Diff
+				let diff = cacheGenerateDiff(local_cache, remote);
+				
+				//update remote
 				for (const post of diff.toPost) {
 					let t: Task = post;
 					console.log("before post\n\n,", local_cache.toString());
@@ -233,17 +249,18 @@ export default class MyPlugin extends Plugin {
 						name: t.name,
 						parent: t.parent ?? null,
 					};
-					// const response = await api.createTask(list_id, op)
+					const response = await this.api.createTask(this.settings.list.selected, op);
 					// const response = await api.createTaskTemp(list_id, op);
-
+				
 					if (!t.id) {
 						throw new Error("shouldn't happen. Check code that the usage is valid");
 					}
 					const oldKey = String(t.id);
 					const newKey = String(response.id);
-
+				
 					local_cache.updateNodeId(oldKey, newKey);
 				}
+				editor.replaceSelection(local_cache.toString());
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command

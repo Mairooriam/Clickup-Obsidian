@@ -151,7 +151,7 @@ export class ApiService {
 		return response.json.lists.map(ClickupListToList);
 	}
 
-	public async getTasks(list_id: string, options?: GetTasksOptions): Promise<Task[]> {
+	public async getTasks(list_id: number, options?: GetTasksOptions): Promise<Task[]> {
 		const queryString = this.buildQueryParams(options);
 		const url = `list/${list_id}/task?${queryString}`;
 		const response = await this.fetcher<_Clickup_Tasks>(url);

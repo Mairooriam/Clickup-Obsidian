@@ -149,7 +149,7 @@ export async function testMapClickupResponseToTasks(): Promise<Task[]> {
 
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
-	const _tasks = await api.getTasks("901522227733", options);
+	const _tasks = await api.getTasks(901522227733, options);
 
 	console.log(tasksToString(_tasks));
 
@@ -185,19 +185,19 @@ export function testCacheFromUserMd() {
 
 export function testDiffChecker() {
 	const local_input = `
-  - Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]
-  \t- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]
-  - Task 1 [_brand:TaskFlags] [parent:null] [id:86c8we387] [top_level_parnet:null]
-  \t- Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]
-  - Task 3
-  \t- Task 3.3
+- Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]
+\t- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]
+- Task 1 [_brand:TaskFlags] [parent:null] [id:86c8we387] [top_level_parnet:null]
+\t- Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]
+\t\t- Task 3
+\t- Task 3.3
     `;
 	const remote_input = `
-  - Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]
-  \t- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]
-  - Task 1 [_brand:TaskFlags] [parent:null] [id:86c8we387] [top_level_parnet:null]
-  \t- Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]
-  `;
+- Task 2 [_brand:TaskFlags] [parent:null] [id:86c8wek01] [top_level_parnet:null]
+\t- Task 2.2 [_brand:TaskFlags] [parent:86c8wek01] [id:86c96ey3c] [top_level_parnet:86c8wek01]
+- Task 1 [_brand:TaskFlags] [parent:null] [id:86c8we387] [top_level_parnet:null]
+\t- Task 1.1 [_brand:TaskFlags] [parent:86c8we387] [id:86c8we3av] [top_level_parnet:86c8we387]
+`;
 
 	const local_lexer = new Lexer(local_input);
 	const remote_lexer = new Lexer(remote_input);
@@ -209,7 +209,7 @@ export function testDiffChecker() {
 
 	// console.log(tokens);
 	let local_tasks = local_parser.parse();
-	tasksResolveParents(local_tasks);
+
 	const remote_tasks = remote_parser.parse();
 
 	// let local_cache = cacheBuildTaskCache(local_tasks);
@@ -372,7 +372,7 @@ testLexerAndParserWithColors();
 // testMapClickupResponseToTasks();
 // testCache(await testMapClickupResponseToTasks())
 // testCacheFromUserMd();
-// testDiffChecker();
+testDiffChecker();
 // testWorkFlow();
 // testCacheUtils();
 // testCacheMethods();

@@ -27,50 +27,32 @@ export function taskMatch(t1: Task, t2: Task): boolean {
 }
 
 
-export function taskHasPlaceholderId(task: Task): boolean {
-	if (task.id.includes("placeholder_")) {
-		return true;
-	}
-	return false;
-}
 
 export function tasksResolveParents(tasks: Task[]): void {
 	const idPrefix = "placeholder_";
 	let idx = 0;
 
-	let lastTask: Task | null = null;
-	for (let i = 0; i < tasks.length; i++) {
-		const currentTask = tasks[i];
-		if (!currentTask) {
-			continue;
-		}
-		if (!currentTask.id) {
-			let id = idPrefix + idx;
-			currentTask.id = id;
+	// Assign placeholder IDs if missing
+	for (const task of tasks) {
+		if (!task) continue;
+		if (!task.id) {
+			task.id = idPrefix + idx;
 			idx++;
 		}
+	}
 
-		if (currentTask.level == 1 || !lastTask) {
-			lastTask = currentTask;
-			continue;
+	// Assign parent IDs using a stack
+	const stack = new Stack<Task>();
+	for (const task of tasks) {
+		while (stack.top() && stack.top()!.level >= task.level) {
+			stack.pop();
 		}
-
-		let stack = new Stack<Task>();
-
-		for (const task of tasks) {
-
-			while (stack.top() && stack.top()!.level >= task.level) {
-				stack.pop();
-			}
-
-			if (!stack.empty()) {
-				task.parent = stack.top()!.id;
-				// taskSetFlag(task, "parent", );
-			}
-			stack.push(task);
+		if (!stack.empty()) {
+			task.parent = stack.top()!.id;
+		} else {
+			task.parent = undefined; // or "null" if that's your convention
 		}
-
-		lastTask = currentTask;
+		stack.push(task);
 	}
 }
 
@@ -94,6 +76,7 @@ export class TaskCache {
 	}
 
 	static fromTasks(tasks: Task[]): TaskCache {
+		tasksResolveParents(tasks);
 		const tree = new TaskCache();
 		for (const task of tasks) {
 			const id = task.id;
@@ -109,7 +92,7 @@ export class TaskCache {
 			}
 		}
 
-		recalculateLevels(tree);
+		recalculateLevels(tree); 
 
 		return tree;
 	}

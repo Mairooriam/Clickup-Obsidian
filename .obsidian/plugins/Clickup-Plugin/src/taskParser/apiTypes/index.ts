@@ -77,14 +77,14 @@ export interface Folder {
 
 // LISTS
 export interface List {
-	id: string;
+	id: number;
 	name: string;
 	orderIndex: number;
 }
 
 export function ClickupListToList(list: _Clickup_List): List {
 	return {
-		id: list.id,
+		id: Number(list.id),
 		name: list.name,
 		orderIndex: list.orderindex,
 	}
