@@ -12,23 +12,42 @@ export interface SpaceSettings {
 	data: ClickupResponseSlim_GetSpaces;
 	selected: string;
 }
+export interface FolderSettings {
+    data: any; //TODO: do same as on team etc. if its good
+    selected: string;
+}
+export interface ListSettings {
+    data: any; //TODO: do same as on team etc. if its good
+    selected: string;
+}
+
 export interface MyPluginSettings {
-	mySetting: string;
-	apiKey: string;
-	team: TeamSettings;
-	space: SpaceSettings;
+    mySetting: string;
+    apiKey: string;
+    team: TeamSettings;
+    space: SpaceSettings;
+    folder: FolderSettings;
+    list: ListSettings;
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default',
-	apiKey: "",
-	team: {
-		data: { teams: [] },
-		selected: "0",
-		refreshOnOpen: true,
-	},
-	    space: {
+    mySetting: 'default',
+    apiKey: "",
+    team: {
+        data: { teams: [] },
+        selected: "0",
+        refreshOnOpen: true,
+    },
+    space: {
         data: { spaces: [] },
+        selected: "0",
+    },
+    folder: {
+        data: { folders: [] },
+        selected: "0",
+    },
+    list: {
+        data: { lists: [] },
         selected: "0",
     },
 }
@@ -49,13 +68,82 @@ export class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', { text: 'Plugin Settings' });
 
-		containerEl.createEl('div', { text: 'Settings loaded' });
+		// API Key
+		new Setting(containerEl)
+			.setName('API Key')
+			.setDesc('Your ClickUp API key')
+			.addText(text => text
+				.setPlaceholder('Enter your API key')
+				.setValue(this.plugin.settings.apiKey)
+				.onChange(async (value) => {
+					this.plugin.settings.apiKey = value;
+					await this.plugin.saveSettings();
+				}));
 
-		this.displayAuth(containerEl);
-		this.displayTeamSection(containerEl);
-		this.displaySpaceSection(containerEl);
+		// Team ID and Name
+		const selectedTeamId = this.plugin.settings.team.selected;
+		const selectedTeam = this.plugin.settings.team.data.teams?.find(t => t.id === selectedTeamId);
+		containerEl.createEl('div', { text: `Team Name: ${selectedTeam ? selectedTeam.name : 'N/A'}` });
+		new Setting(containerEl)
+			.setName('Team')
+			.setDesc('Selected Team')
+			.addText(text => text
+				.setPlaceholder('Team ID')
+				.setValue(selectedTeamId)
+				.onChange(async (value) => {
+					this.plugin.settings.team.selected = value;
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
+		// Space ID and Name
+		const selectedSpaceId = this.plugin.settings.space.selected;
+		const selectedSpace = this.plugin.settings.space.data.spaces?.find(s => s.id === selectedSpaceId);
+		containerEl.createEl('div', { text: `Space Name: ${selectedSpace ? selectedSpace.name : 'N/A'}` });
+		new Setting(containerEl)
+			.setName('Space')
+			.setDesc('Selected Space')
+			.addText(text => text
+				.setPlaceholder('Space ID')
+				.setValue(selectedSpaceId)
+				.onChange(async (value) => {
+					this.plugin.settings.space.selected = value;
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
+		// Folder ID and Name
+		const selectedFolderId = this.plugin.settings.folder.selected;
+		const selectedFolder = this.plugin.settings.folder.data.folders?.find(f => f.id === selectedFolderId);
+		containerEl.createEl('div', { text: `Folder Name: ${selectedFolder ? selectedFolder.name : 'N/A'}` });
+		new Setting(containerEl)
+			.setName('Folder')
+			.setDesc('Selected Folder')
+			.addText(text => text
+				.setPlaceholder('Folder ID')
+				.setValue(selectedFolderId)
+				.onChange(async (value) => {
+					this.plugin.settings.folder.selected = value;
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
+		// List ID and Name
+		const selectedListId = this.plugin.settings.list.selected;
+		const selectedList = this.plugin.settings.list.data.lists?.find(l => l.id === selectedListId);
+		containerEl.createEl('div', { text: `List Name: ${selectedList ? selectedList.name : 'N/A'}` });
+		new Setting(containerEl)
+			.setName('List')
+			.setDesc('Selected List')
+			.addText(text => text
+				.setPlaceholder('List ID')
+				.setValue(selectedListId)
+				.onChange(async (value) => {
+					this.plugin.settings.list.selected = value;
+					await this.plugin.saveSettings();
+					this.display();
+				}));
 	}
-
 
 	private displayAuth(containerEl: HTMLElement) {
 

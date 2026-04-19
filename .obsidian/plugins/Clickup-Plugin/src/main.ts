@@ -154,8 +154,8 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 		this.addCommand({
-			id: 'get-remote-to-cursor',
-			name: 'get remote to cursor',
+			id: 'set-settings',
+			name: 'Set settings',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const apiKey = this.settings.apiKey;
 				if (!apiKey) {
@@ -166,17 +166,36 @@ export default class MyPlugin extends Plugin {
 
 				const teams = await this.api.getTeams();
 				new TeamSuggestModal(this.app, teams, async (team) => {
+					this.settings.team.selected = team.id;
+					this.settings.team.data = { teams };
+					await this.saveSettings();
+
 					const spaces = await this.api.getSpaces(team.id);
 					new TeamSuggestModal(this.app, spaces, async (space) => {
+						this.settings.space = this.settings.space || {};
+						this.settings.space.selected = space.id;
+						this.settings.space.data = { spaces };
+						await this.saveSettings();
+
 						const folders = await this.api.getFolders(space.id);
 						new TeamSuggestModal(this.app, folders, async (folder) => {
+							this.settings.folder = this.settings.folder || {};
+							this.settings.folder.selected = folder.id;
+							this.settings.folder.data = { folders };
+							await this.saveSettings();
+
 							const lists = folder.lists || [];
 							if (lists.length === 0) {
 								new Notice("No lists found in this folder.");
 								return;
 							}
-							// Add a modal for lists here
 							new TeamSuggestModal(this.app, lists, async (list) => {
+								// Optionally save list selection as well
+								this.settings.list = this.settings.list || {};
+								this.settings.list.selected = list.id;
+								this.settings.list.data = { lists };
+								await this.saveSettings();
+
 								let options: GetTasksOptions = {};
 								options.subtasks = true;
 								const tasks = await this.api.getTasks(list.id, options);
@@ -191,10 +210,40 @@ export default class MyPlugin extends Plugin {
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
+			id: 'push-new',
+			name: 'push new',
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				const apiKey = this.settings.apiKey;
+				if (!apiKey) {
+					new Notice("API key not set. Please enter it in the plugin settings.");
+					return;
+				}
+				this.api = ApiService.getInstance(apiKey);
+				let selection = editor.getSelection();
+				const lexer = new Lexer(selection);
+				const tokens = lexer.tokenize()
+				const parser = new Parser(tokens);
+				const tasks = parser.parse();
+				const local_cache = TaskCache.fromTasks(tasks);
+				// let diff = cacheGenerateDiff(local_cache, remote);
+				for (const post of diff.toPost) {
+					let t: Task = post;
+					console.log("before post\n\n,", local_cache.toString());
+					const op: CreateTaskOptions = {
+						name: t.name,
+						parent: t.parent ?? null,
+					};
+					// const response = await api.createTask(list_id, op)
+					// const response = await api.createTaskTemp(list_id, op);
+
+					if (!t.id) {
+						throw new Error("shouldn't happen. Check code that the usage is valid");
+					}
+					const oldKey = String(t.id);
+					const newKey = String(response.id);
+
+					local_cache.updateNodeId(oldKey, newKey);
+				}
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
@@ -244,18 +293,18 @@ export default class MyPlugin extends Plugin {
 	}
 }
 class TeamSuggestModal extends SuggestModal<any> {
-    constructor(app: App, private teams: any[], private onChoose: (team: any) => void) {
-        super(app);
-    }
-    getSuggestions(query: string) {
-        return this.teams.filter(t => t.name.toLowerCase().includes(query.toLowerCase()));
-    }
-    renderSuggestion(team: any, el: HTMLElement) {
-        el.setText(team.name);
-    }
-    onChooseSuggestion(team: any) {
-        this.onChoose(team);
-    }
+	constructor(app: App, private teams: any[], private onChoose: (team: any) => void) {
+		super(app);
+	}
+	getSuggestions(query: string) {
+		return this.teams.filter(t => t.name.toLowerCase().includes(query.toLowerCase()));
+	}
+	renderSuggestion(team: any, el: HTMLElement) {
+		el.setText(team.name);
+	}
+	onChooseSuggestion(team: any) {
+		this.onChoose(team);
+	}
 }
 class SampleModal extends Modal {
 	constructor(app: App) {
