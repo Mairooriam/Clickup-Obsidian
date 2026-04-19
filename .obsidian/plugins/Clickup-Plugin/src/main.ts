@@ -72,7 +72,7 @@ export default class MyPlugin extends Plugin {
 				options.subtasks = true;
 				const tasks = await this.api.getTasks(list.id, options);
 				Logger.log("Tasks: ", tasks);
-				let local = TaskCache.fromTasks(tasks);
+				let local = TaskCache.fromTasks(tasks, false);
 				Logger.log("cache", local)
 				const cacheString = local.toString();
 				console.log(cacheString);

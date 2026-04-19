@@ -75,8 +75,10 @@ export class TaskCache {
 		this.children = new Map();
 	}
 
-	static fromTasks(tasks: Task[]): TaskCache {
-		tasksResolveParents(tasks);
+	static fromTasks(tasks: Task[], resolveParents = true): TaskCache {
+		if (resolveParents) {
+			tasksResolveParents(tasks);
+		}
 		const tree = new TaskCache();
 		for (const task of tasks) {
 			const id = task.id;
@@ -91,9 +93,7 @@ export class TaskCache {
 				tree.children.get(parentId)!.push(task);
 			}
 		}
-
-		recalculateLevels(tree); 
-
+		recalculateLevels(tree);
 		return tree;
 	}
 
