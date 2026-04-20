@@ -6,7 +6,8 @@
     "outDir": "./dist/taskParser",
     "isolatedModules": false,
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+	"types": ["jest", "node"]
   },
   "include": [
     "src/taskParser/**/*.ts"
