@@ -88,8 +88,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200,
-    "collapsed": true
+    "width": 200
   },
   "right": {
     "id": "7959307f6d1fddb9",
@@ -185,14 +184,14 @@
   },
   "left-ribbon": {
     "hiddenItems": {
+      "sample-plugin:Sample": false,
       "switcher:Open quick switcher": false,
       "graph:Open graph view": false,
       "canvas:Create new canvas": false,
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false,
-      "sample-plugin:Sample": false
+      "bases:Create new base": false
     }
   },
   "active": "9d05a601adedcf37",

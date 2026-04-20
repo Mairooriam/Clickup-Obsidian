@@ -1,4 +1,5 @@
 import { Task } from "./apiTypes/index.js";
+import { generateId } from "./id.js";
 import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
 import { Stack } from "./types.js"
@@ -28,16 +29,12 @@ export function taskMatch(t1: Task, t2: Task): boolean {
 
 
 
-export function tasksResolveParents(tasks: Task[]): void {
-	const idPrefix = "placeholder_";
-	let idx = 0;
-
+export function tasksResolveParents(tasks: Task[], idGenerator: () => string = generateId): void {
 	// Assign placeholder IDs if missing
 	for (const task of tasks) {
 		if (!task) continue;
 		if (!task.id) {
-			task.id = idPrefix + idx;
-			idx++;
+			task.id = idGenerator();
 		}
 	}
 

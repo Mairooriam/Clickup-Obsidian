@@ -5,8 +5,8 @@
     "rootDir": "src/taskParser",
     "outDir": "./dist/taskParser",
     "isolatedModules": false,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
 	"types": ["jest", "node"]
   },
   "include": [

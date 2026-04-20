@@ -20,8 +20,7 @@ describe('Lexer', () => {
 \t- Child Task [status:pending]`;
 		const lexer = new Lexer(input);
 		const tokens = lexer.tokenize();
-		console.log(tokens);
-		// Check the exact sequence and properties of tokens
+
 		expect(tokens[0]).toMatchObject({ type: 'Dash', value: '-' });
 		expect(tokens[1]).toMatchObject({ type: 'Text', value: 'Parent Task', flags: {} });
 		expect(tokens[2]).toMatchObject({ type: 'Newline', value: '\n' });

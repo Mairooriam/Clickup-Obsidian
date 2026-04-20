@@ -14,6 +14,9 @@ import { ApiService, GetTasksOptions, CreateTaskOptions } from "./taskParser/Api
 import { Task } from "./taskParser/apiTypes/index"
 import { Lexer } from "taskParser/lexer"
 import { Colors } from 'taskParser/utils/colors';
+import { parseTasksFromMarkdown } from 'taskParser';
+import { cmdAskAndSetClickupSettings } from 'commands';
+import { askYesNo, YesNoModal } from 'components/YesNoModal';
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -55,29 +58,34 @@ export default class MyPlugin extends Plugin {
 					return;
 				}
 				this.api = ApiService.getInstance(apiKey);
-				// If teams not set in settings browse here and select.
-				const teams = await this.api.getTeams();
-				const teamId = teams[0]!.id;
-				const spaces = await this.api.getSpaces(teamId);
-				const spaceId = spaces[0]!.id;
-				const folders = await this.api.getFolders(spaceId)
-				const folder = folders.find((f: any) => f.name === "Projects");
-				if (!folder) throw new Error("Folder not found");
-				console.log("Found folder:", folder);
-				console.log("Lists in folder:", folder.lists);
-				const list = folder.lists.find((f: any) => f.name === "API_test_lista");
-				if (!list) throw new Error("list not found");
-				console.log("Found list: name:%s id:%s", list.name, list.id);
+
+				if (!this.settings.list.selected) {
+					const yes = await askYesNo(this.app, "Do you want to continue?");
+					new Notice(yes ? "You chose Yes" : "You chose No");
+
+					if (!yes) {
+						return;
+					} else {
+						await cmdAskAndSetClickupSettings(this, editor, view);
+					};
+				}
+
 				let options: GetTasksOptions = {};
 				options.subtasks = true;
-				const tasks = await this.api.getTasks(list.id, options);
-				Logger.log("Tasks: ", tasks);
-				let local = TaskCache.fromTasks(tasks, false);
-				Logger.log("cache", local)
-				const cacheString = local.toString();
-				console.log(cacheString);
-				console.log(local);
-				editor.replaceSelection(cacheString);
+				console.log("going to get remote.");
+				try {
+					const tasks = await this.api.getTasks(this.settings.list.selected, options);
+					Logger.log("Tasks: ", tasks);
+					let local = TaskCache.fromTasks(tasks, false);
+					Logger.log("cache", local)
+					const cacheString = local.toString();
+					console.log(cacheString);
+					console.log(local);
+					editor.replaceSelection(cacheString);
+
+				} catch (e) {
+
+				}
 			}
 		});
 		this.addCommand({
@@ -136,11 +144,7 @@ export default class MyPlugin extends Plugin {
 				}
 				this.api = ApiService.getInstance(apiKey);
 				let selection = editor.getSelection();
-				const lexer = new Lexer(selection);
-				const tokens = lexer.tokenize()
-				const parser = new Parser(tokens);
-				const tasks = parser.parse();
-				const cache = TaskCache.fromTasks(tasks);
+				let cache = parseTasksFromMarkdown(selection);
 				// Use static toggle for color
 				cache.setColorForAll(Colors.default);
 
@@ -159,6 +163,7 @@ export default class MyPlugin extends Plugin {
 			id: 'set-settings',
 			name: 'Set settings',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
+
 				const apiKey = this.settings.apiKey;
 				if (!apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
@@ -166,48 +171,8 @@ export default class MyPlugin extends Plugin {
 				}
 				this.api = ApiService.getInstance(apiKey);
 
-				const teams = await this.api.getTeams();
-				new TeamSuggestModal(this.app, teams, async (team) => {
-					this.settings.team.selected = team.id;
-					this.settings.team.data = { teams };
-					await this.saveSettings();
 
-					const spaces = await this.api.getSpaces(team.id);
-					new TeamSuggestModal(this.app, spaces, async (space) => {
-						this.settings.space = this.settings.space || {};
-						this.settings.space.selected = space.id;
-						this.settings.space.data = { spaces };
-						await this.saveSettings();
-
-						const folders = await this.api.getFolders(space.id);
-						new TeamSuggestModal(this.app, folders, async (folder) => {
-							this.settings.folder = this.settings.folder || {};
-							this.settings.folder.selected = folder.id;
-							this.settings.folder.data = { folders };
-							await this.saveSettings();
-
-							const lists = folder.lists || [];
-							if (lists.length === 0) {
-								new Notice("No lists found in this folder.");
-								return;
-							}
-							new TeamSuggestModal(this.app, lists, async (list) => {
-								// Optionally save list selection as well
-								this.settings.list = this.settings.list || {};
-								this.settings.list.selected = list.id;
-								this.settings.list.data = { lists };
-								await this.saveSettings();
-
-								let options: GetTasksOptions = {};
-								options.subtasks = true;
-								const tasks = await this.api.getTasks(list.id, options);
-								let local = TaskCache.fromTasks(tasks);
-								const cacheString = local.toString();
-								editor.replaceSelection(cacheString);
-							}).open();
-						}).open();
-					}).open();
-				}).open();
+				cmdAskAndSetClickupSettings(this, editor, view);
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
@@ -237,10 +202,10 @@ export default class MyPlugin extends Plugin {
 				options.subtasks = true;
 				const remote_tasks = await this.api.getTasks(this.settings.list.selected, options);
 				let remote = TaskCache.fromTasks(remote_tasks);
-				
+
 				//Diff
 				let diff = cacheGenerateDiff(local_cache, remote);
-				
+
 				//update remote
 				for (const post of diff.toPost) {
 					let t: Task = post;
@@ -251,13 +216,13 @@ export default class MyPlugin extends Plugin {
 					};
 					const response = await this.api.createTask(this.settings.list.selected, op);
 					// const response = await api.createTaskTemp(list_id, op);
-				
+
 					if (!t.id) {
 						throw new Error("shouldn't happen. Check code that the usage is valid");
 					}
 					const oldKey = String(t.id);
 					const newKey = String(response.id);
-				
+
 					local_cache.updateNodeId(oldKey, newKey);
 				}
 				editor.replaceSelection(local_cache.toString());

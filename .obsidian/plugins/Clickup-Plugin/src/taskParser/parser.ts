@@ -1,10 +1,10 @@
-import type { Token } from "./lexer.js"
-import { TokenType } from "./lexer.js"
-import { Task } from "./apiTypes/index.js"
-import { generateId } from "./id.js";
+import type { Token } from "./lexer"
+import { TokenType } from "./lexer"
+import { Task } from "./apiTypes/index"
+import { generateId } from "./id";
 
-import { Color, Colors, toColor } from "./utils/colors.js";
-import { Logger } from "./utils/logger.js";
+import { Color, Colors, toColor } from "./utils/colors";
+import { Logger } from "./utils/logger";
 
 function taskFromToken(id: string, level: number, name: string, color: Color, flags?: Record<string, any>): Task {
 	const task = new Task(id, level, name, color);
