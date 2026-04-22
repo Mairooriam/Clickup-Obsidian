@@ -5,6 +5,9 @@ import { tasksResolveParents, taskMatch, cacheGenerateDiff, TaskCache } from "./
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./ApiService.js";
 import { Lexer } from "./lexer.js"
 import { ClickupTaskToTask, Task, tasksToString } from "./apiTypes/index.js"
+import { Logger } from "./utils/logger.js";
+import { Colors } from "./utils/colors.js";
+
 
 
 
@@ -12,24 +15,68 @@ import { ClickupTaskToTask, Task, tasksToString } from "./apiTypes/index.js"
  * Parse markdown into a TaskCache.
  */
 export function parseTasksFromMarkdown(md: string): TaskCache {
-	const lexer = new Lexer(md);
-	const tokens = lexer.tokenize();
-	const parser = new Parser(tokens);
-	const tasks = parser.parse();
-	tasksResolveParents(tasks);
-	return TaskCache.fromTasks(tasks);
+	return TaskCache.fromMarkdown(md);
 }
 
 /**
- * Convert a list of tasks to markdown.
+ * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
+ *
+ * @param {number} listId - The ClickUp list ID to fetch tasks from.
+ * @param {ApiService} api - The API service instance used to make requests.
+ * @returns {Promise<string>} A promise that resolves to the markdown string representation of the remote tasks.
+ *
+ * @remarks
+ * If the request fails, an empty string is returned and an error is logged.
  */
-export function tasksToMarkdown(tasks: Task[]): string {
-	return TaskCache.fromTasks(tasks).toString();
+export async function getRemote(listId: number, api: ApiService): Promise<string> {
+	let options: GetTasksOptions = {};
+	options.subtasks = true;
+	try {
+		const tasks = await api.getTasks(listId, options);
+		Logger.log("taskParser.index", "Tasks:", tasks);
+		let local = TaskCache.fromApi(tasks);
+		Logger.log("taskParser.index", "Local cache", local)
+		const cacheString = local.toString();
+		Logger.log("taskParser.index", "Cache as string:", cacheString.toString());
+		return local.toString();
+	} catch (e) {
+		//TODO: make logger differnelty since formatting bad for this logger.
+		Logger.error("taskParser.index", "Failed to fetch remote tasks:", e);
+		return "";
+	}
 }
 
-export function getFoldersEx(teamId: number, spaceId: number) {
+/**
+ * Computes the diff between a local TaskCache and the remote ClickUp list,
+ * returns colored markdown.
+ *
+ * @param {TaskCache} cacheLocal - The local TaskCache parsed from markdown.
+ * @param {number} remoteId - The ClickUp list ID to fetch remote tasks from.
+ * @param {ApiService} api - The API service instance used to make requests.
+ * @returns {Promise<string>} A promise that resolves to the colored markdown string representing the diff.
+ *
+ * @remarks
+ * - New tasks are colored green.
+ * - Updated tasks are colored blue.
+ * - Deleted tasks are colored red.
+ * - All other tasks are colored white.
+ */
+export async function getColoredDiffMarkdown(localMd: string, remoteId: number, api: ApiService): Promise<string> {
+	const cache = TaskCache.fromMarkdown(localMd);
 
+	let options: GetTasksOptions = {};
+	options.subtasks = true;
+	const remote_tasks = await api.getTasks(remoteId, options);
+	let cacheRemote = TaskCache.fromApi(remote_tasks);
+
+	let diff = cacheGenerateDiff(cache, cacheRemote);
+
+	cache.setColorForAll(Colors.White);
+	diff.toPost.forEach(task => cache.setColorForSubtree(task.id, Colors.Green));
+	diff.toPut.forEach(task => cache.setColorForSubtree(task.id, Colors.Blue));
+	diff.toDelete.forEach(task => cache.setColorForSubtree(task.id, Colors.Red));
+
+	return cache.toString();
 }
-
 
 export type { Task, TaskCache };

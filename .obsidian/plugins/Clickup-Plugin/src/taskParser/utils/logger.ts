@@ -21,19 +21,69 @@ function getCircularReplacer() {
     };
 }
 
+export type LoggerKey =
+    | "taskParser.index"
+    | "parser"
+    | "cache"
+    | "diff"
+    | "ui"
+    | "settings"
+    | "tasks"
+    | "default";
+
+type LogLevel = "none" | "error" | "warn" | "log";
+
+type LoggerConfig = {
+    [K in LoggerKey]?: LogLevel;
+};
+
+const defaultLevel: LogLevel = "log";
+
+const logLevels: Record<LogLevel, number> = {
+    none: 0,
+    error: 1,
+    warn: 2,
+    log: 3,
+};
+
+let config: LoggerConfig = {};
+
 export namespace Logger {
-    export function log(message: string, ...args: unknown[]): void {
-        const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
-        console.log(`[LOG] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+    /**
+     * Set the logging level for a specific key.
+     * Example: Logger.setLevel("api", "warn");
+     */
+    export function setLevel(key: LoggerKey, level: LogLevel) {
+        config[key] = level;
     }
 
-    export function warn(message: string, ...args: unknown[]): void {
-        const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
-        console.warn(`[WARN] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+    /**
+     * Set multiple logging levels at once.
+     */
+    export function setLevels(newConfig: LoggerConfig) {
+        config = { ...config, ...newConfig };
     }
 
-    export function error(message: string, ...args: unknown[]): void {
+    function shouldLog(key: LoggerKey, level: LogLevel): boolean {
+        const keyLevel = config[key] ?? defaultLevel;
+        return logLevels[level] <= logLevels[keyLevel];
+    }
+
+    export function log(key: LoggerKey, message: string, ...args: unknown[]): void {
+        if (!shouldLog(key, "log")) return;
         const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
-        console.error(`[ERROR] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+        console.log(`[${key.toUpperCase()}][LOG] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+    }
+
+    export function warn(key: LoggerKey, message: string, ...args: unknown[]): void {
+        if (!shouldLog(key, "warn")) return;
+        const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
+        console.warn(`[${key.toUpperCase()}][WARN] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+    }
+
+    export function error(key: LoggerKey, message: string, ...args: unknown[]): void {
+        if (!shouldLog(key, "error")) return;
+        const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
+        console.error(`[${key.toUpperCase()}][ERROR] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
     }
 }

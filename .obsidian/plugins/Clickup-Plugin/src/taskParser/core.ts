@@ -72,6 +72,15 @@ export class TaskCache {
 		this.children = new Map();
 	}
 	/**
+	 * Creates a deep copy of this TaskCache.
+	 * @returns {TaskCache} A new TaskCache instance with the same data.
+	 */
+	clone(): TaskCache {
+		// Use toString and fromMarkdown for a deep copy.
+		return TaskCache.fromMarkdown(this.toString());
+	}
+
+	/**
 	 * Build a TaskCache tree from a flat array of tasks.
 	 * 
 	 * @param tasks Flat array of Task objects.

@@ -14,7 +14,7 @@ import { ApiService, GetTasksOptions, CreateTaskOptions } from "./taskParser/Api
 import { Task } from "./taskParser/apiTypes/index"
 import { Lexer } from "taskParser/lexer"
 import { Colors } from 'taskParser/utils/colors';
-import { parseTasksFromMarkdown } from 'taskParser';
+import { getDiffAndDisplay, getMarkdownWithDiffColors, getRemote, parseTasksFromMarkdown } from 'taskParser';
 import { cmdAskAndSetClickupSettings } from 'commands';
 import { askYesNo, YesNoModal } from 'components/YesNoModal';
 
@@ -59,6 +59,7 @@ export default class MyPlugin extends Plugin {
 				}
 				this.api = ApiService.getInstance(apiKey);
 
+				//TODO: nicer way to do this?
 				if (!this.settings.list.selected) {
 					const yes = await askYesNo(this.app, "No settings selected. Do you want to select them?");
 					new Notice(yes ? "You chose Yes" : "You chose No");
@@ -70,21 +71,9 @@ export default class MyPlugin extends Plugin {
 					};
 				}
 
-				let options: GetTasksOptions = {};
-				options.subtasks = true;
-				try {
-					const tasks = await this.api.getTasks(this.settings.list.selected, options);
-					Logger.log("Tasks: ", tasks);
-					let local = TaskCache.fromApi(tasks);
-					Logger.log("cache", local)
-					const cacheString = local.toString();
-					console.log(cacheString);
-					console.log(local);
-					editor.replaceSelection(cacheString);
-
-				} catch (e) {
-
-				}
+				// Gets tasks from clickup
+				const md = await getRemote(this.settings.list.selected, this.api);
+				editor.replaceSelection(md);
 			}
 		});
 		this.addCommand({
@@ -98,10 +87,6 @@ export default class MyPlugin extends Plugin {
 				}
 				this.api = ApiService.getInstance(apiKey);
 
-				//Local
-				let selection = editor.getSelection();
-				let cacheLocal = TaskCache.fromMarkdown(selection);
-
 				// Validate settings
 				if (!this.settings.list.selected) {
 					const yes = await askYesNo(this.app, "No settings selected. Do you want to select them?");
@@ -114,25 +99,10 @@ export default class MyPlugin extends Plugin {
 					};
 				}
 
-				let options: GetTasksOptions = {};
-				options.subtasks = true;
-				//remote
-				const remote_tasks = await this.api.getTasks(this.settings.list.selected, options);
-				let cacheRemote = TaskCache.fromApi(remote_tasks);
-
-				//Diff
-				let diff = cacheGenerateDiff(cacheLocal, cacheRemote);
-				console.log("Diff", diff);
-				console.log("Local Cache:", cacheLocal);
-				console.log("Remote Cache:", cacheRemote)
-
-				cacheLocal.setColorForAll(Colors.White);
-				diff.toPost.forEach(task => cacheLocal.setColorForSubtree(task.id, Colors.Green));
-				diff.toPut.forEach(task => cacheLocal.setColorForSubtree(task.id, Colors.Blue));
-				diff.toDelete.forEach(task => cacheLocal.setColorForSubtree(task.id, Colors.Red));
-
-				editor.replaceSelection(cacheLocal.toString());
-				console.log(cacheLocal.toString());
+				const localMd = editor.getSelection();
+				const remoteId = this.settings.list.selected;
+				const coloredCache = await getMarkdownWithDiffColors(localMd, remoteId, this.api);
+				editor.replaceSelection(coloredCache);
 			}
 		});
 		this.addCommand({
