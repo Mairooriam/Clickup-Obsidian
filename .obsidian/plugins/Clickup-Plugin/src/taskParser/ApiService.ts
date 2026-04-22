@@ -1,9 +1,9 @@
-import { _Clickup_Lists } from "./apiTypes/getLists.js";
-import { _Clickup_Tasks } from "./apiTypes/getTasks.js";
-import { Team, Space, Folder, Task, ClickupTaskToTask, List, ClickupListToList } from "./apiTypes/index.js"
-import { _Clickup_Teams, _Clickup_Spaces, _Clickup_Folders } from "./apiTypes/index.js"
-import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from "./apiTypes/index.js"
-import { _Clickup_CreateTask } from "./apiTypes/createTask.js";
+import { _Clickup_Lists } from "./apiTypes/getLists";
+import { _Clickup_Tasks } from "./apiTypes/getTasks";
+import { Team, Space, Folder, Task, ClickupTaskToTask, List, ClickupListToList } from "./apiTypes/index"
+import { _Clickup_Teams, _Clickup_Spaces, _Clickup_Folders } from "./apiTypes/index"
+import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from "./apiTypes/index"
+import { _Clickup_CreateTask } from "./apiTypes/createTask";
 
 
 
@@ -65,20 +65,26 @@ export class ApiService {
 	private static instance: ApiService;
 	private readonly token: string;
 	private tempID: number;
+	private fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>;
 
-	private constructor(token: string) {
+	private constructor(token: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>) {
 		this.token = token;
 		this.tempID = 0;
+		this.fetcherOverride = fetcherOverride;
 	}
 
-	public static getInstance(token?: string): ApiService {
+	public static getInstance(token?: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>): ApiService {
 		if (!ApiService.instance) {
 			if (!token) throw new Error("ApiService requires a token on first initialization");
-			ApiService.instance = new ApiService(token);
+			ApiService.instance = new ApiService(token, fetcherOverride);
 		}
 		return ApiService.instance;
 	}
+
 	private async fetcher<T>(url: string, options: { method?: string; body?: string; headers?: Record<string, string> } = {}): Promise<HttpResponse<T>> {
+		if (this.fetcherOverride) {
+			return this.fetcherOverride<T>(url, options);
+		}
 		const stack = new Error().stack?.split('\n').slice(2, 5).join('\n') ?? "no stack";
 		console.log(`[API] ${options.method ?? "GET"} ${url}\nCalled from:\n${stack}`);
 
@@ -156,6 +162,18 @@ export class ApiService {
 		const url = `list/${list_id}/task?${queryString}`;
 		const response = await this.fetcher<_Clickup_Tasks>(url);
 		return response.json.tasks.map(ClickupTaskToTask);
+	}
+
+	public async updateTaskParent(task_id: string, newParent: string) {
+		const url = `task/${task_id}`;
+		const response = await this.fetcher<any>(url, {
+			method: "PUT",
+			body: JSON.stringify({ parent: newParent }),
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+		return response.json;
 	}
 
 

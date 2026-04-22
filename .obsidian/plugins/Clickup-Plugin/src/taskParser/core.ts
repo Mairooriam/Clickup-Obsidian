@@ -1,9 +1,9 @@
-import { Task } from "./apiTypes/index.js";
-import { generateId } from "./id.js";
-import { Lexer } from "./lexer.js";
-import { Parser } from "./parser.js";
-import { Stack } from "./types.js"
-import { Color } from "./utils/colors.js";
+import { Task } from "./apiTypes/index";
+import { generateId } from "./id";
+import { Lexer } from "./lexer";
+import { Parser } from "./parser";
+import { Stack } from "./types"
+import { Color } from "./utils/colors";
 
 export function debugPrint(msg: string) {
 	const err = new Error();
@@ -47,7 +47,7 @@ export function tasksResolveParents(tasks: Task[], idGenerator: () => string = g
 		if (!stack.empty()) {
 			task.parent = stack.top()!.id;
 		} else {
-			task.parent = undefined; // or "null" if that's your convention
+			task.parent = undefined;
 		}
 		stack.push(task);
 	}
@@ -71,8 +71,15 @@ export class TaskCache {
 		this.map = new Map();
 		this.children = new Map();
 	}
-
-	static fromTasks(tasks: Task[], resolveParents = true): TaskCache {
+	/**
+	 * Build a TaskCache tree from a flat array of tasks.
+	 * 
+	 * @param tasks Flat array of Task objects.
+	 * @param resolveParents If true, parent relationships are recalculated using `tasksResolveParents` (for tasks parsed from markdown, where parent/level must be inferred).
+	 *                       If false, parent relationships are assumed to be already set (e.g., tasks from API).
+	 * @returns TaskCache instance representing the task tree.
+	 */
+	private static fromTasks(tasks: Task[], resolveParents = true): TaskCache {
 		if (resolveParents) {
 			tasksResolveParents(tasks);
 		}
@@ -94,10 +101,31 @@ export class TaskCache {
 		return tree;
 	}
 
-	static fromMd(md: string): TaskCache {
+	/**
+	 * Create a TaskCache from an array of tasks returned by the API.
+	 *
+	 * @param tasks Flat array of Task objects from the API. These tasks are expected to already have correct `parent` fields set.
+	 * @returns TaskCache instance representing the task tree.
+	 *
+	 * This method does NOT recalculate parent relationships. Use this for tasks loaded from the API, where parent/level information is already present.
+	 */
+	static fromApi(tasks: Task[]): TaskCache {
+		return this.fromTasks(tasks, false);
+	}
+
+	/**
+	 * Create a TaskCache from a markdown string.
+	 *
+	 * @param md Markdown string containing task definitions.
+	 * @returns TaskCache instance representing the task tree.
+	 *
+	 * This method parses the markdown, infers parent relationships and levels, and builds the task tree accordingly.
+	 */
+	static fromMarkdown(md: string): TaskCache {
 		const lexer = new Lexer(md);
 		const parser = new Parser(lexer.tokenize());
-		return this.fromTasks(parser.parse());
+		const tasks = parser.parse();
+		return this.fromTasks(tasks, true);
 	}
 
 	addNode(task: Task): boolean {

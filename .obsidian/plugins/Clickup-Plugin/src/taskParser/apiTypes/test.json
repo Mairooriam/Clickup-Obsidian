@@ -22,9 +22,9 @@
       "archived": false,
       "creator": {
         "id": 278568608,
-        "username": "miro Loisa",
+        "username": "testName",
         "color": "#595d66",
-        "email": "mirosanteriloisa@gmail.com",
+        "email": "Email.com",
         "profilePicture": null
       },
       "assignees": [],
@@ -32,10 +32,10 @@
       "watchers": [
         {
           "id": 278568608,
-          "username": "miro Loisa",
+          "username": "testName",
           "color": "#595d66",
           "initials": "ML",
-          "email": "mirosanteriloisa@gmail.com",
+          "email": "Email.com",
           "profilePicture": null
         }
       ],

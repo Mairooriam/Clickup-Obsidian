@@ -1,14 +1,14 @@
-import { _Clickup_Team, _Clickup_Teams } from "./getTeams.js"
-import { _Clickup_Space, _Clickup_Spaces } from "./getSpaces.js"
-import { _Clickup_Folder, _Clickup_Folders } from "./getFolders.js"
-import { _Clickup_Task, _Clickup_Tasks } from "./getTasks.js"
-import { _Clickup_List } from "./getLists.js"
+import { _Clickup_Team, _Clickup_Teams } from "./getTeams"
+import { _Clickup_Space, _Clickup_Spaces } from "./getSpaces"
+import { _Clickup_Folder, _Clickup_Folders } from "./getFolders"
+import { _Clickup_Task, _Clickup_Tasks } from "./getTasks"
+import { _Clickup_List } from "./getLists"
 
-import { Colors, toColor, Color } from "./../utils/colors.js";
+import { Colors, Color } from "./../utils/colors";
 
-export type { _Clickup_Teams } from "./getTeams.js"
-export type { _Clickup_Spaces } from "./getSpaces.js"
-export type { _Clickup_Folders } from "./getFolders.js"
+export type { _Clickup_Teams } from "./getTeams"
+export type { _Clickup_Spaces } from "./getSpaces"
+export type { _Clickup_Folders } from "./getFolders"
 
 
 
@@ -108,16 +108,16 @@ export class Task {
 		this.color = color;
 	}
 
-    toString(): string {
-        const indent = "\t".repeat(this.level);
-        const parent = this.parent ? ` [parent:${this.parent}]` : "";
-        const content = `${indent}- ${this.name} [id:${this.id}]${parent}`;
-        
-        if (this.color) {
-            return `<span style="color:${this.color};white-space:pre">${content}</span>`;
-        }
-        return content;
-    }
+	toString(): string {
+		const indent = "\t".repeat(this.level);
+		const parent = this.parent ? ` [parent:${this.parent}]` : "";
+		const content = `${indent}- ${this.name} [id:${this.id}]${parent}`;
+
+		if (this.color) {
+			return `<span style="color:${this.color};white-space:pre">${content}</span>`;
+		}
+		return content;
+	}
 }
 
 export function tasksToString(tasks: Task[]): string {

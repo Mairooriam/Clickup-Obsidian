@@ -60,7 +60,7 @@ export default class MyPlugin extends Plugin {
 				this.api = ApiService.getInstance(apiKey);
 
 				if (!this.settings.list.selected) {
-					const yes = await askYesNo(this.app, "Do you want to continue?");
+					const yes = await askYesNo(this.app, "No settings selected. Do you want to select them?");
 					new Notice(yes ? "You chose Yes" : "You chose No");
 
 					if (!yes) {
@@ -72,11 +72,10 @@ export default class MyPlugin extends Plugin {
 
 				let options: GetTasksOptions = {};
 				options.subtasks = true;
-				console.log("going to get remote.");
 				try {
 					const tasks = await this.api.getTasks(this.settings.list.selected, options);
 					Logger.log("Tasks: ", tasks);
-					let local = TaskCache.fromTasks(tasks, false);
+					let local = TaskCache.fromApi(tasks);
 					Logger.log("cache", local)
 					const cacheString = local.toString();
 					console.log(cacheString);
@@ -97,40 +96,43 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-
 				this.api = ApiService.getInstance(apiKey);
+
 				//Local
 				let selection = editor.getSelection();
-				const lexer = new Lexer(selection);
-				let local_cache = TaskCache.fromMd(selection);
-				// Fetch
-				const teams = await this.api.getTeams();
-				const teamId = teams[0]!.id;
-				const spaces = await this.api.getSpaces(teamId);
-				const spaceId = spaces[0]!.id;
-				const folders = await this.api.getFolders(spaceId)
-				const folder = folders.find((f: any) => f.name === "Projects");
-				if (!folder) throw new Error("Folder not found");
-				const list = folder.lists.find((f: any) => f.name === "API_test_lista");
-				if (!list) throw new Error("list not found");
+				let cacheLocal = TaskCache.fromMarkdown(selection);
+
+				// Validate settings
+				if (!this.settings.list.selected) {
+					const yes = await askYesNo(this.app, "No settings selected. Do you want to select them?");
+					new Notice(yes ? "You chose Yes" : "You chose No");
+
+					if (!yes) {
+						return;
+					} else {
+						await cmdAskAndSetClickupSettings(this, editor, view);
+					};
+				}
+
 				let options: GetTasksOptions = {};
 				options.subtasks = true;
-
 				//remote
-				//TODO: way of getting this.
-				const remote_tasks = await this.api.getTasks(list.id, options);
-				let remote = TaskCache.fromTasks(remote_tasks);
+				const remote_tasks = await this.api.getTasks(this.settings.list.selected, options);
+				let cacheRemote = TaskCache.fromApi(remote_tasks);
+
 				//Diff
-				let diff = cacheGenerateDiff(local_cache, remote);
+				let diff = cacheGenerateDiff(cacheLocal, cacheRemote);
 				console.log("Diff", diff);
+				console.log("Local Cache:", cacheLocal);
+				console.log("Remote Cache:", cacheRemote)
 
-				local_cache.setColorForAll(Colors.White);
-				diff.toPost.forEach(task => local_cache.setColorForSubtree(task.id, Colors.Green));
-				diff.toPut.forEach(task => local_cache.setColorForSubtree(task.id, Colors.Blue));
-				diff.toDelete.forEach(task => local_cache.setColorForSubtree(task.id, Colors.Red));
+				cacheLocal.setColorForAll(Colors.White);
+				diff.toPost.forEach(task => cacheLocal.setColorForSubtree(task.id, Colors.Green));
+				diff.toPut.forEach(task => cacheLocal.setColorForSubtree(task.id, Colors.Blue));
+				diff.toDelete.forEach(task => cacheLocal.setColorForSubtree(task.id, Colors.Red));
 
-				editor.replaceSelection(local_cache.toString());
-				console.log(local_cache.toString());
+				editor.replaceSelection(cacheLocal.toString());
+				console.log(cacheLocal.toString());
 			}
 		});
 		this.addCommand({
@@ -186,46 +188,70 @@ export default class MyPlugin extends Plugin {
 					return;
 				}
 				this.api = ApiService.getInstance(apiKey);
-				// Parse local
-				let selection = editor.getSelection();
-				const lexer = new Lexer(selection);
-				const tokens = lexer.tokenize();
-				Logger.log("Tokens", tokens);
-				const parser = new Parser(tokens);
-				const tasks = parser.parse();
-				Logger.log("input", tasks);
-				const local_cache = TaskCache.fromTasks(tasks);
-				console.log(local_cache);
 
-				//Get remote
+				console.time("push-new:parse-local");
+				let selection = editor.getSelection();
+				const local_cache = TaskCache.fromMarkdown(selection);
+				console.timeEnd("push-new:parse-local");
+
+				console.time("push-new:get-remote");
 				let options: GetTasksOptions = {};
 				options.subtasks = true;
 				const remote_tasks = await this.api.getTasks(this.settings.list.selected, options);
-				let remote = TaskCache.fromTasks(remote_tasks);
+				let remote = TaskCache.fromApi(remote_tasks);
+				console.timeEnd("push-new:get-remote");
 
-				//Diff
+				console.time("push-new:diff");
 				let diff = cacheGenerateDiff(local_cache, remote);
+				console.log("diff before", diff);
+				console.timeEnd("push-new:diff");
 
-				//update remote
-				for (const post of diff.toPost) {
-					let t: Task = post;
-					console.log("before post\n\n,", local_cache.toString());
+				console.time("push-new:create-remote");
+				const idMap = new Map<string, string>();
+
+				// Create all of the tasks from toPost
+				// NOTE: they wont have parent and it wont wait for response
+				// to get it done faster
+				await Promise.all(diff.toPost.map(async t => {
+					const label = `push-new:create-task:${t.name || ''}:${t.id}`;
+					console.time(label);
 					const op: CreateTaskOptions = {
 						name: t.name,
-						parent: t.parent ?? null,
+						parent: null,
 					};
 					const response = await this.api.createTask(this.settings.list.selected, op);
-					// const response = await api.createTaskTemp(list_id, op);
+					console.timeEnd(label);
+					idMap.set(String(t.id), String(response.id));
+				}));
+				console.timeEnd("push-new:create-remote");
 
-					if (!t.id) {
-						throw new Error("shouldn't happen. Check code that the usage is valid");
-					}
-					const oldKey = String(t.id);
-					const newKey = String(response.id);
+				// Update the tasks parents to match the previous step 
+				console.time("push-new:update-remote");
+				console.log("diff after post", diff);
+				const updatePromises = diff.toPost
+					.filter(t => t.parent)
+					.map(async t => {
+						const realId = idMap.get(String(t.id));
+						console.log("realId: ", realId);
+						const realParentId = idMap.get(String(t.parent));
+						console.log("realParentId: ", realParentId);
 
-					local_cache.updateNodeId(oldKey, newKey);
+						if (realId && realParentId) {
+							await this.api.updateTaskParent(realId, realParentId);
+						}
+					});
+				await Promise.all(updatePromises);
+				console.timeEnd("push-new:update-remote");
+
+				console.time("push-new:update-local-ids");
+				for (const [localId, remoteId] of idMap.entries()) {
+					local_cache.updateNodeId(localId, remoteId);
 				}
+				console.timeEnd("push-new:update-local-ids");
+
+				console.time("push-new:replace-selection");
 				editor.replaceSelection(local_cache.toString());
+				console.timeEnd("push-new:replace-selection");
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
@@ -274,20 +300,7 @@ export default class MyPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 }
-class TeamSuggestModal extends SuggestModal<any> {
-	constructor(app: App, private teams: any[], private onChoose: (team: any) => void) {
-		super(app);
-	}
-	getSuggestions(query: string) {
-		return this.teams.filter(t => t.name.toLowerCase().includes(query.toLowerCase()));
-	}
-	renderSuggestion(team: any, el: HTMLElement) {
-		el.setText(team.name);
-	}
-	onChooseSuggestion(team: any) {
-		this.onChoose(team);
-	}
-}
+
 class SampleModal extends Modal {
 	constructor(app: App) {
 		super(app);
