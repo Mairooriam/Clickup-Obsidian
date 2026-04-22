@@ -14,7 +14,7 @@ import { ApiService, GetTasksOptions, CreateTaskOptions } from "./taskParser/Api
 import { Task } from "./taskParser/apiTypes/index"
 import { Lexer } from "taskParser/lexer"
 import { Colors } from 'taskParser/utils/colors';
-import { getDiffAndDisplay, getMarkdownWithDiffColors, getRemote, parseTasksFromMarkdown } from 'taskParser';
+import { getDiffAndDisplay, getMarkdownWithDiffColors, getRemote, parseTasksFromMarkdown, setAllTasksColor } from 'taskParser';
 import { cmdAskAndSetClickupSettings } from 'commands';
 import { askYesNo, YesNoModal } from 'components/YesNoModal';
 
@@ -115,19 +115,9 @@ export default class MyPlugin extends Plugin {
 					return;
 				}
 				this.api = ApiService.getInstance(apiKey);
-				let selection = editor.getSelection();
-				let cache = parseTasksFromMarkdown(selection);
-				// Use static toggle for color
-				cache.setColorForAll(Colors.default);
-
-				// if (MyPlugin.useColor) {
-				// 	cache.setColorForAll(Colors.Green);
-				// 	MyPlugin.useColor = false;
-				// } else {
-				// 	cache.setColorForAll(Colors.default);
-				// 	MyPlugin.useColor = true;
-				// }
-				editor.replaceSelection(cache.toString());
+				let md = editor.getSelection();
+				const newMd = setAllTasksColor(md, Colors.default);
+				editor.replaceSelection(newMd);
 
 			}
 		});

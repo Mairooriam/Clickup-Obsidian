@@ -6,7 +6,7 @@ import { ApiService, GetTasksOptions, CreateTaskOptions } from "./ApiService.js"
 import { Lexer } from "./lexer.js"
 import { ClickupTaskToTask, Task, tasksToString } from "./apiTypes/index.js"
 import { Logger } from "./utils/logger.js";
-import { Colors } from "./utils/colors.js";
+import { Color, Colors } from "./utils/colors.js";
 
 
 
@@ -77,6 +77,23 @@ export async function getColoredDiffMarkdown(localMd: string, remoteId: number, 
 	diff.toDelete.forEach(task => cache.setColorForSubtree(task.id, Colors.Red));
 
 	return cache.toString();
+}
+
+/**
+ * Sets the color for all tasks in the given markdown string.
+ *
+ * @param {string} md - The markdown string representing the tasks.
+ * @param {Color} color - The color to apply to all tasks.
+ * @returns {string} The markdown string with all tasks colored.
+ *
+ * @remarks
+ * This function parses the markdown into a TaskCache, sets the color for all tasks,
+ * and returns the updated markdown string.
+ */
+export function setAllTasksColor(md: string, color: Color): string {
+    let cache = parseTasksFromMarkdown(md);
+    cache.setColorForAll(color);
+    return cache.toString();
 }
 
 export type { Task, TaskCache };
