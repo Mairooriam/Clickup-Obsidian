@@ -11,8 +11,6 @@
 
 
 
-
-
 - Task 1 [id:86c9etttr]
 	- testnew [id:86c9etttu] [parent:86c9etttr]
 	- Task 1.1 [id:86c9etttw] [parent:86c9etttr]
@@ -26,10 +24,6 @@
 - Task 2 [id:86c9etttv]
 	- Task 2.2 [id:86c9etttx] [parent:86c9etttv]
 - Task 3 [id:86c9etttt]
-
-
-
-
 
 
 

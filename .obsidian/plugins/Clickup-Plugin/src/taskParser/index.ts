@@ -10,14 +10,6 @@ import { Color, Colors } from "./utils/colors.js";
 
 
 
-
-/**
- * Parse markdown into a TaskCache.
- */
-export function parseTasksFromMarkdown(md: string): TaskCache {
-	return TaskCache.fromMarkdown(md);
-}
-
 /**
  * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
  *
@@ -61,7 +53,7 @@ export async function getRemote(listId: number, api: ApiService): Promise<string
  * - Deleted tasks are colored red.
  * - All other tasks are colored white.
  */
-export async function getColoredDiffMarkdown(localMd: string, remoteId: number, api: ApiService): Promise<string> {
+async function getColoredDiffMarkdown(localMd: string, remoteId: number, api: ApiService): Promise<string> {
 	const cache = TaskCache.fromMarkdown(localMd);
 
 	let options: GetTasksOptions = {};
@@ -90,10 +82,16 @@ export async function getColoredDiffMarkdown(localMd: string, remoteId: number, 
  * This function parses the markdown into a TaskCache, sets the color for all tasks,
  * and returns the updated markdown string.
  */
-export function setAllTasksColor(md: string, color: Color): string {
-    let cache = parseTasksFromMarkdown(md);
-    cache.setColorForAll(color);
-    return cache.toString();
+function setAllTasksColor(md: string, color: Color): string {
+	let cache = TaskCache.fromMarkdown(md);
+	cache.setColorForAll(color);
+	return cache.toString();
 }
 
-export type { Task, TaskCache };
+export const TaskParser = {
+	getRemote,
+	getColoredDiffMarkdown,
+	setAllTasksColor,
+	TaskCache,
+	Colors,
+};

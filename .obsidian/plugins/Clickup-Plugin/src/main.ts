@@ -4,20 +4,13 @@ import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings
 // Remember to rename these classes and interfaces!
 import { Logger } from 'taskParser/utils/logger';
 import { SuggestModal } from "obsidian";
-import { Parser } from "./taskParser/parser"
-import { readFile } from "fs/promises";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { tasksResolveParents, taskMatch, cacheGenerateDiff, TaskCache } from "./taskParser/core"
 import { inspect } from "util";
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./taskParser/ApiService";
-import { Task } from "./taskParser/apiTypes/index"
-import { Lexer } from "taskParser/lexer"
-import { Colors } from 'taskParser/utils/colors';
-import { getDiffAndDisplay, getMarkdownWithDiffColors, getRemote, parseTasksFromMarkdown, setAllTasksColor } from 'taskParser';
 import { cmdAskAndSetClickupSettings } from 'commands';
 import { askYesNo, YesNoModal } from 'components/YesNoModal';
 
+import { TaskParser } from 'taskParser';
+import { cacheGenerateDiff, TaskCache } from 'taskParser/core';
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	api: ApiService;
@@ -72,7 +65,7 @@ export default class MyPlugin extends Plugin {
 				}
 
 				// Gets tasks from clickup
-				const md = await getRemote(this.settings.list.selected, this.api);
+				const md = await TaskParser.getRemote(this.settings.list.selected, this.api);
 				editor.replaceSelection(md);
 			}
 		});
@@ -101,7 +94,7 @@ export default class MyPlugin extends Plugin {
 
 				const localMd = editor.getSelection();
 				const remoteId = this.settings.list.selected;
-				const coloredCache = await getMarkdownWithDiffColors(localMd, remoteId, this.api);
+				const coloredCache = await TaskParser.getColoredDiffMarkdown(localMd, remoteId, this.api);
 				editor.replaceSelection(coloredCache);
 			}
 		});
@@ -116,9 +109,8 @@ export default class MyPlugin extends Plugin {
 				}
 				this.api = ApiService.getInstance(apiKey);
 				let md = editor.getSelection();
-				const newMd = setAllTasksColor(md, Colors.default);
+				const newMd = TaskParser.setAllTasksColor(md, TaskParser.Colors.default);
 				editor.replaceSelection(newMd);
-
 			}
 		});
 		this.addCommand({
@@ -132,7 +124,6 @@ export default class MyPlugin extends Plugin {
 					return;
 				}
 				this.api = ApiService.getInstance(apiKey);
-
 
 				cmdAskAndSetClickupSettings(this, editor, view);
 			}
