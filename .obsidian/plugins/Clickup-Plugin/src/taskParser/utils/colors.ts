@@ -1,4 +1,4 @@
-import { Logger } from "./logger";
+import { Logger } from "./logger.js";
 
 export type HexColor = string & { __brand: "HexColor" };
 
@@ -21,6 +21,6 @@ export function toColor(value: string): HexColor | NamedColor | null {
 	if ((namedColors as readonly string[]).includes(value.toLowerCase())) {
 		return value.toLowerCase() as NamedColor;
 	}
-	Logger.warn(`toColor: invalid color`, value);
+	Logger.warn("colors", `toColor: invalid color`, value);
 	return null;
 }

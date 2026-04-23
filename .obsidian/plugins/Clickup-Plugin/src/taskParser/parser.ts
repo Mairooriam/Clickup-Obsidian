@@ -1,10 +1,10 @@
-import type { Token } from "./lexer"
-import { TokenType } from "./lexer"
-import { Task } from "./apiTypes/index"
-import { generateId } from "./id";
+import type { Token } from "./lexer.js"
+import { TokenType } from "./lexer.js"
+import { Task } from "./apiTypes/index.js"
+import { generateId } from "./id.js";
 
-import { Color, Colors, toColor } from "./utils/colors";
-import { Logger } from "./utils/logger";
+import { Color, Colors, toColor } from "./utils/colors.js";
+import { Logger } from "./utils/logger.js";
 
 function taskFromToken(id: string, level: number, name: string, color: Color, flags?: Record<string, any>): Task {
 	const task = new Task(id, level, name, color);
@@ -39,7 +39,7 @@ export class Parser {
 	}
 
 
-	parse(): Task[] {
+	parseTasks(): Task[] {
 		const allTasks: Task[] = [];
 		let color: Color = Colors.default;
 		let htmlOpen = false;
@@ -69,7 +69,7 @@ export class Parser {
 
 			if (this.isToken(TokenType.NEWLINE)) {
 				if (htmlOpen) {
-					Logger.warn("Malformed input: span not closed before newline", this);
+					Logger.warn("parser", "Malformed input: span not closed before newline", this);
 					color = Colors.default;
 					htmlOpen = false;
 				}

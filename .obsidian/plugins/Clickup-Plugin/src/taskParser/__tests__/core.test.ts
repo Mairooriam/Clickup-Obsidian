@@ -1,7 +1,7 @@
 import { join } from "path";
-import { ApiService } from "../ApiService";
+import { ApiService } from "../ApiService.js";
 import * as fs from "fs";
-import { TaskCache, tasksResolveParents } from "./../core";
+import { TaskCache, tasksResolveParents } from "../core.js";
 
 const mockResponse = JSON.parse(
 	fs.readFileSync(join(__dirname, "getTasks-response.json"), "utf-8")

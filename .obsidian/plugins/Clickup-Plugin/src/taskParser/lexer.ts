@@ -1,12 +1,19 @@
-export enum TokenType {
+import { Char } from "./utils/char.js";
+import { Logger } from "./utils/logger.js";
+export const enum TokenType {
 	DASH = "Dash",
 	CHECKBOX_EMPTY = "Checkbox Empty",
 	CHECKBOX_COMPLETED = "Checkbox Completed",
+	SQUARE_BRACE_OPEN = "[",
+	FLAG = "FLAG",
+	SQUARE_BRACE_CLOSED = "]",
 	TEXT = "Text",
 	INDENT = "Indent",
 	NEWLINE = "Newline",
 	HTML_OPEN = "HTML Open",
 	HTML_CLOSE = "HTML Close",
+	HEADING = "Heading",
+	SPACE = "Space",
 	EOF = "End of File"
 }
 
@@ -30,6 +37,14 @@ export class Lexer {
 
 	private isAtEnd(): boolean {
 		return this.position >= this.input.length;
+	}
+
+	private is(char: Char): boolean {
+		if (this.current() === char) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	private current(): string {
@@ -71,6 +86,15 @@ export class Lexer {
 		return text.trim();
 	}
 
+	private parseClosure(closure: Char): string {
+		let result = "";
+		while (!this.isAtEnd() && !this.is(closure)) {
+			result += this.current();
+			this.advance();
+		}
+		return result;
+	}
+
 	parseTextWithFlags(text: string): { text: string; flags: Record<string, string> } {
 		const flags: Record<string, string> = {};
 		let cleanText = '';
@@ -107,29 +131,32 @@ export class Lexer {
 			flags: flags
 		};
 	}
-	private countIndent(): number {
+	private countChar(chars: string[]): number {
 		let count = 0;
-		while (!this.isAtEnd() && (this.current() === '\t' || this.current() === ' ')) {
-			if (this.current() === '\t') count++;
-			else count += 0.25;
+		while (!this.isAtEnd() && chars.includes(this.current())) {
+			count++;
 			this.advance();
 		}
-		return Math.floor(count);
+		return count;
 	}
-
 	getNextToken(): Token {
 		while (!this.isAtEnd()) {
-			switch (this.current()) {
+			const current = this.current();
+			switch (current) {
 				case '\n':
 					this.advance();
 					return { type: TokenType.NEWLINE, value: '\n', row: this.row, col: this.col };
-				case '\t':
-				case ' ':
-					const indent = this.countIndent();
+				case '\t': {
+					const indent = this.countChar(['\t']);
 					if (indent > 0) {
 						return { type: TokenType.INDENT, value: indent.toString(), row: this.row, col: this.col };
 					}
+					this.advance();
 					continue;
+				}
+				case ' ':
+					this.advance();
+					return { type: TokenType.SPACE, value: ' ', row: this.row, col: this.col };
 				case '-':
 					this.advance();
 					this.skipWhitespace();
@@ -146,9 +173,27 @@ export class Lexer {
 						this.advance(3);
 						this.skipWhitespace();
 						return checkboxCompleted;
+					} else {
+						let text = "";
+						this.advance();
+						while (!this.isAtEnd() && !this.is("]")) {
+							text += this.current();
+							this.advance();
+						}
+
+						if (!this.is("]")) {
+							Logger.warn("lexer", "Unclosed '[' brace");
+							break;
+						}
+
+						this.advance();
+						this.skipWhitespace()
+						return { type: TokenType.FLAG, value: text, row: this.row, col: this.col };
 					}
-					this.skipWhitespace();
-					break;
+				case ']': {
+					return { type: TokenType.SQUARE_BRACE_CLOSED, value: "]", row: this.row, col: this.col };
+
+				}
 				case '<':
 					// </tagname> - html close
 					if (this.peek() === '/') {
@@ -182,7 +227,24 @@ export class Lexer {
 					}
 					this.advance();
 					break;
-				default:
+				case '#': {
+					let level = 1;
+					this.advance();
+					while (this.is("#")) {
+						level++;
+						this.advance();
+					}
+					this.skipWhitespace()
+
+					return {
+						type: TokenType.HEADING,
+						value: String(level),
+						row: this.row,
+						col: this.col,
+						flags: {}
+					};
+				}
+				default: {
 					const text = this.readText();
 					if (text) {
 						const { text: cleanText, flags } = this.parseTextWithFlags(text);
@@ -196,9 +258,9 @@ export class Lexer {
 					}
 					this.advance();
 					break;
+				}
 			}
 		}
-
 		return { type: TokenType.EOF, value: '', row: this.row, col: this.col };
 	}
 

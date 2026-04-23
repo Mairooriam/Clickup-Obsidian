@@ -88,10 +88,85 @@ function setAllTasksColor(md: string, color: Color): string {
 	return cache.toString();
 }
 
+async function pushDiff(md: string, targetId: number, api: ApiService): Promise<string> {
+	console.time("push-new:parse-local");
+	const local_cache = TaskCache.fromMarkdown(md);
+	console.timeEnd("push-new:parse-local");
+
+	console.time("push-new:get-remote");
+	let options: GetTasksOptions = {};
+	options.subtasks = true;
+	const remote_tasks = await api.getTasks(targetId, options);
+	let remote = TaskCache.fromApi(remote_tasks);
+	console.timeEnd("push-new:get-remote");
+
+	console.time("push-new:diff");
+	let diff = cacheGenerateDiff(local_cache, remote);
+	console.timeEnd("push-new:diff");
+
+	console.time("push-new:create-remote");
+	const idMap = new Map<string, string>();
+
+	// Create all of the tasks from toPost
+	// NOTE: they wont have parent and it wont wait for response
+	// to get it done faster
+	await Promise.all(diff.toPost.map(async t => {
+		const label = `push-new:create-task:${t.name || ''}:${t.id}`;
+		console.time(label);
+		const op: CreateTaskOptions = {
+			name: t.name,
+			parent: null,
+		};
+		const response = await api.createTask(targetId, op);
+		console.timeEnd(label);
+		idMap.set(String(t.id), String(response.id));
+	}));
+	console.timeEnd("push-new:create-remote");
+
+	// Update the tasks parents to match the previous step 
+	console.time("push-new:update-remote");
+	const updatePromises = diff.toPost
+		.filter(t => t.parent)
+		.map(async t => {
+			const realId = idMap.get(String(t.id));
+			const realParentId = idMap.get(String(t.parent));
+
+			if (realId && realParentId) {
+				await api.updateTaskParent(realId, realParentId);
+			}
+		});
+	await Promise.all(updatePromises);
+	console.timeEnd("push-new:update-remote");
+
+	console.time("push-new:update-local-ids");
+	for (const [localId, remoteId] of idMap.entries()) {
+		local_cache.updateNodeId(localId, remoteId);
+	}
+	console.timeEnd("push-new:update-local-ids");
+
+	return local_cache.toString();
+}
+
+function testingLexer() {
+	const input = `
+## [teams] TEAM [id:teamId]
+### [spaces] SPACE [id:spaceId]
+#### [folders] FOLDER [id:FolderId]
+- [ ] Uncompleted Task
+- [x] Completed Task
+    `;
+	const lexer = new Lexer(input);
+	const tokens = lexer.tokenize();
+	console.log(tokens);
+}
+
+testingLexer();
+
 export const TaskParser = {
 	getRemote,
 	getColoredDiffMarkdown,
 	setAllTasksColor,
+	pushDiff,
 	TaskCache,
 	Colors,
 };

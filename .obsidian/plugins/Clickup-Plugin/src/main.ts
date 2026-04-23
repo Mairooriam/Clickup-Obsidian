@@ -1,6 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
-
+import { EditorView, ViewUpdate } from "@codemirror/view";
 // Remember to rename these classes and interfaces!
 import { Logger } from 'taskParser/utils/logger';
 import { SuggestModal } from "obsidian";
@@ -11,6 +11,7 @@ import { askYesNo, YesNoModal } from 'components/YesNoModal';
 
 import { TaskParser } from 'taskParser';
 import { cacheGenerateDiff, TaskCache } from 'taskParser/core';
+import { Task } from 'taskParser/apiTypes';
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	api: ApiService;
@@ -37,7 +38,18 @@ export default class MyPlugin extends Plugin {
 				console.error("Failed to fetch teams on load:", e);
 			}
 		}
-
+		const slashFlagExtension = EditorView.updateListener.of((vu: ViewUpdate) => {
+			if (!vu.docChanged) return;
+			const { state, view } = vu;
+			const cursor = view.state.selection.main.head;
+			const line = state.doc.lineAt(cursor);
+			const beforeCursor = state.doc.sliceString(line.from, cursor);
+			if (beforeCursor.endsWith("/")) {
+				//TODO: check if inside task
+				new Notice("hello from flag extension");
+			}
+		});
+		this.registerEditorExtension(slashFlagExtension);
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: 'get-remote',
@@ -140,69 +152,9 @@ export default class MyPlugin extends Plugin {
 				}
 				this.api = ApiService.getInstance(apiKey);
 
-				console.time("push-new:parse-local");
 				let selection = editor.getSelection();
-				const local_cache = TaskCache.fromMarkdown(selection);
-				console.timeEnd("push-new:parse-local");
-
-				console.time("push-new:get-remote");
-				let options: GetTasksOptions = {};
-				options.subtasks = true;
-				const remote_tasks = await this.api.getTasks(this.settings.list.selected, options);
-				let remote = TaskCache.fromApi(remote_tasks);
-				console.timeEnd("push-new:get-remote");
-
-				console.time("push-new:diff");
-				let diff = cacheGenerateDiff(local_cache, remote);
-				console.log("diff before", diff);
-				console.timeEnd("push-new:diff");
-
-				console.time("push-new:create-remote");
-				const idMap = new Map<string, string>();
-
-				// Create all of the tasks from toPost
-				// NOTE: they wont have parent and it wont wait for response
-				// to get it done faster
-				await Promise.all(diff.toPost.map(async t => {
-					const label = `push-new:create-task:${t.name || ''}:${t.id}`;
-					console.time(label);
-					const op: CreateTaskOptions = {
-						name: t.name,
-						parent: null,
-					};
-					const response = await this.api.createTask(this.settings.list.selected, op);
-					console.timeEnd(label);
-					idMap.set(String(t.id), String(response.id));
-				}));
-				console.timeEnd("push-new:create-remote");
-
-				// Update the tasks parents to match the previous step 
-				console.time("push-new:update-remote");
-				console.log("diff after post", diff);
-				const updatePromises = diff.toPost
-					.filter(t => t.parent)
-					.map(async t => {
-						const realId = idMap.get(String(t.id));
-						console.log("realId: ", realId);
-						const realParentId = idMap.get(String(t.parent));
-						console.log("realParentId: ", realParentId);
-
-						if (realId && realParentId) {
-							await this.api.updateTaskParent(realId, realParentId);
-						}
-					});
-				await Promise.all(updatePromises);
-				console.timeEnd("push-new:update-remote");
-
-				console.time("push-new:update-local-ids");
-				for (const [localId, remoteId] of idMap.entries()) {
-					local_cache.updateNodeId(localId, remoteId);
-				}
-				console.timeEnd("push-new:update-local-ids");
-
-				console.time("push-new:replace-selection");
-				editor.replaceSelection(local_cache.toString());
-				console.timeEnd("push-new:replace-selection");
+				const newMd = await TaskParser.pushDiff(selection, this.settings.list.selected, this.api);
+				editor.replaceSelection(newMd);
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command

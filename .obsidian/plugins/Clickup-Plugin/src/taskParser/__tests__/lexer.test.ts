@@ -1,4 +1,4 @@
-import { Lexer } from '../lexer';
+import { Lexer } from '../lexer.js';
 
 describe('Lexer', () => {
 	it('tokenizes a simple task', () => {
@@ -43,5 +43,65 @@ describe('Lexer', () => {
 		const tokens = lexer.tokenize();
 		expect(tokens.some(t => t.value.includes('Uncompleted Task'))).toBe(true);
 		expect(tokens.some(t => t.value.includes('Completed Task'))).toBe(true);
+	});
+
+	it('parses headings and flags at correct positions and levels', () => {
+		const input = `
+## [teams] TEAM [id:teamId]
+### [spaces] SPACE [id:spaceId]
+#### [folders] FOLDER [id:FolderId]
+- [ ] Uncompleted Task
+- [x] Completed Task
+    `;
+		const lexer = new Lexer(input);
+		const tokens = lexer.tokenize();
+
+		// Heading 2
+		expect(tokens[1]).toMatchObject({
+			type: 'Heading',
+			value: '2',
+			flags: {}
+		});
+		expect(tokens[2]).toMatchObject({
+			type: 'FLAG',
+			value: 'teams'
+		});
+		expect(tokens[3]).toMatchObject({
+			type: 'Text',
+			value: 'TEAM',
+			flags: { id: 'teamId' }
+		});
+
+		// Heading 3
+		expect(tokens[5]).toMatchObject({
+			type: 'Heading',
+			value: '3',
+			flags: {}
+		});
+		expect(tokens[6]).toMatchObject({
+			type: 'FLAG',
+			value: 'spaces'
+		});
+		expect(tokens[7]).toMatchObject({
+			type: 'Text',
+			value: 'SPACE',
+			flags: { id: 'spaceId' }
+		});
+
+		// Heading 4
+		expect(tokens[9]).toMatchObject({
+			type: 'Heading',
+			value: '4',
+			flags: {}
+		});
+		expect(tokens[10]).toMatchObject({
+			type: 'FLAG',
+			value: 'folders'
+		});
+		expect(tokens[11]).toMatchObject({
+			type: 'Text',
+			value: 'FOLDER',
+			flags: { id: 'FolderId' }
+		});
 	});
 });

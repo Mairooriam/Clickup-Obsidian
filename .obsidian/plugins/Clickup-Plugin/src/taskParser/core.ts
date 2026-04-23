@@ -1,9 +1,9 @@
-import { Task } from "./apiTypes/index";
-import { generateId } from "./id";
-import { Lexer } from "./lexer";
-import { Parser } from "./parser";
-import { Stack } from "./types"
-import { Color } from "./utils/colors";
+import { Task } from "./apiTypes/index.js";
+import { generateId } from "./id.js";
+import { Lexer } from "./lexer.js";
+import { Parser } from "./parser.js";
+import { Stack } from "./types.js"
+import { Color } from "./utils/colors.js";
 
 export function debugPrint(msg: string) {
 	const err = new Error();

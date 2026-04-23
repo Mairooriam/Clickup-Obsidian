@@ -85,8 +85,8 @@ export class ApiService {
 		if (this.fetcherOverride) {
 			return this.fetcherOverride<T>(url, options);
 		}
-		const stack = new Error().stack?.split('\n').slice(2, 5).join('\n') ?? "no stack";
-		console.log(`[API] ${options.method ?? "GET"} ${url}\nCalled from:\n${stack}`);
+		// const stack = new Error().stack?.split('\n').slice(2, 5).join('\n') ?? "no stack";
+		// console.log(`[API] ${options.method ?? "GET"} ${url}\nCalled from:\n${stack}`);
 
 		const resp = await fetch(`https://api.clickup.com/api/v2/${url}`, {
 			method: options.method ?? "GET",
