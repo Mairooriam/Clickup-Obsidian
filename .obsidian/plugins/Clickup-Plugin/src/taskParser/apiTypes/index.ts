@@ -11,8 +11,6 @@ export type { _Clickup_Spaces } from "./getSpaces.js"
 export type { _Clickup_Folders } from "./getFolders.js"
 
 
-
-
 // TEAMS 
 export function ClickupTeamToTeam(team: _Clickup_Team): Team {
 	return {
@@ -80,6 +78,7 @@ export interface List {
 	id: number;
 	name: string;
 	orderIndex: number;
+	tasks: Task[];
 }
 
 export function ClickupListToList(list: _Clickup_List): List {
@@ -87,12 +86,11 @@ export function ClickupListToList(list: _Clickup_List): List {
 		id: Number(list.id),
 		name: list.name,
 		orderIndex: list.orderindex,
+		tasks: [],
 	}
 }
 
 // TASKS
-
-
 export class Task {
 	id: string;
 	level: number; // used in display. not in clickup

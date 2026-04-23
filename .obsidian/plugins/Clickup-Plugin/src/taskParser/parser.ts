@@ -37,6 +37,9 @@ export class Parser {
 		}
 		if (this.isToken(TokenType.NEWLINE)) this.next();
 	}
+	parseFull(): Project {
+
+	}
 
 
 	parseTasks(): Task[] {

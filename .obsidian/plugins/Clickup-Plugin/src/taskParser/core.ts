@@ -133,7 +133,7 @@ export class TaskCache {
 	static fromMarkdown(md: string): TaskCache {
 		const lexer = new Lexer(md);
 		const parser = new Parser(lexer.tokenize());
-		const tasks = parser.parse();
+		const tasks = parser.parseTasks();
 		return this.fromTasks(tasks, true);
 	}
 
