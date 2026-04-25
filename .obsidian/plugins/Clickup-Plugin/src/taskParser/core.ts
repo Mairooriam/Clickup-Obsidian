@@ -27,8 +27,6 @@ export function taskMatch(t1: Task, t2: Task): boolean {
 	return true;
 }
 
-
-
 export function tasksResolveParents(tasks: Task[], idGenerator: () => string = generateId): void {
 	// Assign placeholder IDs if missing
 	for (const task of tasks) {

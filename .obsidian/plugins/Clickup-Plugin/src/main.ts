@@ -77,8 +77,16 @@ export default class MyPlugin extends Plugin {
 				}
 
 				// Gets tasks from clickup
-				const md = await TaskParser.getRemote(this.settings.list.selected, this.api);
-				editor.replaceSelection(md);
+				// const md = await TaskParser.getRemote(this.settings.list.selected, this.api);
+				const teamId = this.settings.team.selected;
+				const spaceId = this.settings.space.selected;
+				const folderId = this.settings.folder.selected;
+				const listId = this.settings.list.selected;
+
+				const mdFull = await TaskParser.getRemoteFull(teamId, spaceId, folderId, listId, this.api);
+
+				editor.replaceSelection(mdFull);
+				// editor.replaceSelection(md);
 			}
 		});
 		this.addCommand({

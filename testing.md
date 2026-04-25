@@ -1,32 +1,21 @@
 
-
-<span style="color:green">+ Added task</span>  
-<span style="color:red">- Removed task</span>  
-<span style="color:orange">! Changed task</span>
-**
-
-
-
-
-
-
-
-
-
-
-
-//////////////////
-
-
-
-
-
-
-
-
-
-
-
-
+## [teams] Miro Loisa's Workspace [id:90152327839]
+### [spaces] Team Space [id:90159830416]
+#### [folders] Projects [id:901515206765]
+##### [lists] API_test_lista [id:901522227733]
+- new [id:86c9g0x9f]
+- Task 1 [id:86c9g0wwd]
+	- Task 1.1 [id:86c9g0wwc] [parent:86c9g0wwd]
+	- Task2 1.1 [id:86c9g0ww2] [parent:86c9g0wwd]
+		- Task 1.1_1.1 [id:86c9g0ww8] [parent:86c9g0ww2]
+			- task2 [id:86c9g0wwa] [parent:86c9g0ww8]
+				- task3 [id:86c9g0ww4] [parent:86c9g0wwa]
+					- task3 [id:86c9g0ww5] [parent:86c9g0ww4]
+						- task3 [id:86c9g0ww3] [parent:86c9g0ww5]
+							- nesting! [id:86c9g0wwn] [parent:86c9g0ww3]
+	- testnew [id:86c9g0ww1] [parent:86c9g0wwd]
+- Task 2 [id:86c9g0wwb]
+	- Task 2.2 [id:86c9g0wwj] [parent:86c9g0wwb]
+- Task 3 [id:86c9g0ww6]
 
 

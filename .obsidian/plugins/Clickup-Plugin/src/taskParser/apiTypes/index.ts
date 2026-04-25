@@ -5,6 +5,7 @@ import { _Clickup_Task, _Clickup_Tasks } from "./getTasks.js"
 import { _Clickup_List } from "./getLists.js"
 
 import { Colors, Color } from "./../utils/colors.js";
+import { TaskCache } from "taskParser/core.js"
 
 export type { _Clickup_Teams } from "./getTeams.js"
 export type { _Clickup_Spaces } from "./getSpaces.js"
@@ -129,3 +130,50 @@ export function ClickupTaskToTask(task: _Clickup_Task): Task {
 	return t;
 }
 
+
+
+/**
+ * Serialize a full Team hierarchy (Team > Space > Folder > List > Tasks) to markdown.
+ */
+export function teamsToMarkdown(teams: Team[]): string {
+    return teams.map(teamToMarkdown).join("\n");
+}
+
+export function teamToMarkdown(team: Team): string {
+    const lines: string[] = [];
+    lines.push(`## [teams] ${team.name} [id:${team.id}]`);
+    for (const space of team.spaces) {
+        lines.push(spaceToMarkdown(space));
+    }
+    return lines.join("\n");
+}
+
+function spaceToMarkdown(space: Space): string {
+    const lines: string[] = [];
+    lines.push(`### [spaces] ${space.name} [id:${space.id}]`);
+    for (const folder of space.folders) {
+        lines.push(folderToMarkdown(folder));
+    }
+    return lines.join("\n");
+}
+
+function folderToMarkdown(folder: Folder): string {
+    const lines: string[] = [];
+    lines.push(`#### [folders] ${folder.name} [id:${folder.id}]`);
+    for (const list of folder.lists) {
+        lines.push(listToMarkdown(list));
+    }
+    return lines.join("\n");
+}
+
+//TODO: make something nicer later not hpapy wthi this whole thing
+function listToMarkdown(list: List): string {
+    const lines: string[] = [];
+    lines.push(`##### [lists] ${list.name} [id:${list.id}]`);
+    // Convert tasks to TaskCache and use its toString for proper hierarchy
+    if (list.tasks && list.tasks.length > 0 && typeof TaskCache !== "undefined") {
+        const cache = TaskCache.fromApi(list.tasks);
+        lines.push(cache.toString());
+    }
+    return lines.join("\n");
+}

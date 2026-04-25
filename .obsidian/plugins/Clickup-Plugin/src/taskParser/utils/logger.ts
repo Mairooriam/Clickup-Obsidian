@@ -31,6 +31,7 @@ export type LoggerKey =
 	| "tasks"
 	| "lexer"
 	| "default"
+	| "core"
 	| "colors";
 
 type LogLevel = "none" | "error" | "warn" | "log";

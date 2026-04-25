@@ -4,12 +4,65 @@ import { Parser } from "./parser.js"
 import { tasksResolveParents, taskMatch, cacheGenerateDiff, TaskCache } from "./core.js"
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./ApiService.js";
 import { Lexer } from "./lexer.js"
-import { ClickupTaskToTask, Task, tasksToString } from "./apiTypes/index.js"
+import { ClickupTaskToTask, Task, tasksToString, Team, teamsToMarkdown, teamToMarkdown } from "./apiTypes/index.js"
 import { Logger } from "./utils/logger.js";
 import { Color, Colors } from "./utils/colors.js";
+import { inspect } from "util";
 
+export async function getRemoteFull(teamId: string, spaceId: string, folderId: string, listId: number, api: ApiService): Promise<string> {
+	let team: Team | null = null;
+	try {
+		const teams = await api.getTeams();
+		for (const _team of teams) {
+			if (_team.id === teamId) {
+				team = _team;
+				break;
+			}
+		}
 
+		if (!team) {
+			Logger.error("core", `teamId: ${teamId} was not found on the remote`);
+			return "";
+		}
 
+		let space = await api.getSpace(spaceId);
+		if (!space) {
+			Logger.error("core", `spaceId: ${spaceId} was not found on the remote`);
+			return "";
+		} else {
+			team.spaces.push(space);
+		}
+
+		let folder = await api.getFolder(folderId);
+		if (!folder) {
+			Logger.error("core", `folderId: ${folderId} was not found on the remote`);
+			return "";
+		} else {
+			folder.lists = folder.lists.filter((list: any) => list.id === listId);
+
+			let options: GetTasksOptions = {};
+			options.subtasks = true;
+			let tasks = await api.getTasks(listId, options);
+			if (!tasks) {
+				Logger.error("core", `listId: ${listId} doesn't contain tasks`);
+				return "";
+			}
+			if (folder.lists.length > 0) {
+				folder.lists[0]!.tasks = tasks;
+			}
+
+			space.folders.push(folder);
+		}
+
+		// let local = TaskCache.fromApi(tasks);
+		const result = teamToMarkdown(team);
+		return result;
+	} catch (e) {
+		//TODO: make logger differnelty since formatting bad for this logger.
+		Logger.error("taskParser.index", "Failed to fetch remote tasks:", e);
+		return "";
+	}
+}
 /**
  * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
  *
@@ -42,7 +95,7 @@ export async function getRemote(listId: number, api: ApiService): Promise<string
  * Computes the diff between a local TaskCache and the remote ClickUp list,
  * returns colored markdown.
  *
- * @param {TaskCache} cacheLocal - The local TaskCache parsed from markdown.
+ * @param {string} localMd - Markdown of tasks
  * @param {number} remoteId - The ClickUp list ID to fetch remote tasks from.
  * @param {ApiService} api - The API service instance used to make requests.
  * @returns {Promise<string>} A promise that resolves to the colored markdown string representing the diff.
@@ -158,12 +211,17 @@ function testingLexer() {
 	const lexer = new Lexer(input);
 	const tokens = lexer.tokenize();
 	console.log(tokens);
+	const parser = new Parser(tokens);
+	const team = parser.parseFull();
+
+	console.log(inspect(team, false, null));
 }
 
 testingLexer();
 
 export const TaskParser = {
 	getRemote,
+	getRemoteFull,
 	getColoredDiffMarkdown,
 	setAllTasksColor,
 	pushDiff,

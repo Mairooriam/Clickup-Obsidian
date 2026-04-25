@@ -1,9 +1,11 @@
-import { _Clickup_Lists } from "./apiTypes/getLists";
+import { _Clickup_List, _Clickup_Lists } from "./apiTypes/getLists";
 import { _Clickup_Tasks } from "./apiTypes/getTasks";
 import { Team, Space, Folder, Task, ClickupTaskToTask, List, ClickupListToList } from "./apiTypes/index"
 import { _Clickup_Teams, _Clickup_Spaces, _Clickup_Folders } from "./apiTypes/index"
 import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from "./apiTypes/index"
 import { _Clickup_CreateTask } from "./apiTypes/createTask";
+import { _Clickup_Space } from "./apiTypes/getSpaces";
+import { _Clickup_Folder } from "./apiTypes/getFolders";
 
 
 
@@ -142,9 +144,14 @@ export class ApiService {
 		return resp.json.teams.map(ClickupTeamToTeam);
 	}
 
-	public async getSpaces(team_id: string): Promise<Space[]> {
-		const response = await this.fetcher<_Clickup_Spaces>(`team/${team_id}/space`);
+	public async getSpaces(teamId: string): Promise<Space[]> {
+		const response = await this.fetcher<_Clickup_Spaces>(`team/${teamId}/space`);
 		return response.json.spaces.map(ClickupSpaceToSpace);
+	}
+
+	public async getSpace(spaceId: string): Promise<Space> {
+		const response = await this.fetcher<_Clickup_Space>(`space/${spaceId}`);
+		return ClickupSpaceToSpace(response.json);
 	}
 
 	public async getFolders(space_id: string): Promise<Folder[]> {
@@ -152,10 +159,21 @@ export class ApiService {
 		return response.json.folders.map(ClickupFolderToFolder);
 	}
 
+	public async getFolder(folderId: string): Promise<Folder> {
+		const response = await this.fetcher<_Clickup_Folder>(`folder/${folderId}`);
+		return ClickupFolderToFolder(response.json);
+	}
+
 	public async getLists(folder_id: string): Promise<List[]> {
 		const response = await this.fetcher<_Clickup_Lists>(`space/${folder_id}/folder`);
 		return response.json.lists.map(ClickupListToList);
 	}
+
+	public async getList(listId: number): Promise<List> {
+		const response = await this.fetcher<_Clickup_List>(`list/${listId}`);
+		return ClickupListToList(response.json);
+	}
+
 
 	public async getTasks(list_id: number, options?: GetTasksOptions): Promise<Task[]> {
 		const queryString = this.buildQueryParams(options);
