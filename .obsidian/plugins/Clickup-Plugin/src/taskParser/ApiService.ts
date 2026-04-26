@@ -7,7 +7,17 @@ import { _Clickup_CreateTask } from "./apiTypes/createTask";
 import { _Clickup_Space } from "./apiTypes/getSpaces";
 import { _Clickup_Folder } from "./apiTypes/getFolders";
 
-
+//TODO: think of something else?
+function cleanObject<T, K extends keyof T>(obj: T, keys: K[]): Partial<Pick<T, K>> {
+	const result: Partial<Pick<T, K>> = {};
+	for (const key of keys) {
+		const value = obj[key];
+		if (value !== undefined && value !== null) {
+			result[key] = value;
+		}
+	}
+	return result;
+}
 
 export interface GetTasksOptions {
 	order_by?: "id" | "created" | "updated" | "due_date"; // Order by specific fields
@@ -196,6 +206,21 @@ export class ApiService {
 
 
 
+	public async updateTask(task_id: string, task: Task) {
+		const url = `task/${task_id}`;
+		const fieldsToSend: (keyof Task)[] = [
+			"name", "parent"
+		];
+		const payload = cleanObject(task, fieldsToSend);
+		const response = await this.fetcher<any>(url, {
+			method: "PUT",
+			body: JSON.stringify(payload),
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+		return response.json;
+	}
 	//
 	// public async getToken(input: string): Promise<string | undefined> {
 	//   if (!input) return "MISSING_TOKEN";

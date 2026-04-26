@@ -50,13 +50,10 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 		this.registerEditorExtension(slashFlagExtension);
-		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: 'get-remote',
 			name: 'get remote',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				// const apiKey = await readFile("../../../../testApiKey", 'utf8');
-				// let api = ApiService.getInstance(apiKey);
 				const apiKey = this.settings.apiKey;
 				if (!apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
@@ -77,16 +74,8 @@ export default class MyPlugin extends Plugin {
 				}
 
 				// Gets tasks from clickup
-				// const md = await TaskParser.getRemote(this.settings.list.selected, this.api);
-				const teamId = this.settings.team.selected;
-				const spaceId = this.settings.space.selected;
-				const folderId = this.settings.folder.selected;
-				const listId = this.settings.list.selected;
-
-				const mdFull = await TaskParser.getRemoteFull(teamId, spaceId, folderId, listId, this.api);
-
-				editor.replaceSelection(mdFull);
-				// editor.replaceSelection(md);
+				const md = await TaskParser.getRemote(this.settings.list.selected, this.api);
+				editor.replaceSelection(md);
 			}
 		});
 		this.addCommand({
@@ -161,8 +150,10 @@ export default class MyPlugin extends Plugin {
 				this.api = ApiService.getInstance(apiKey);
 
 				let selection = editor.getSelection();
-				const newMd = await TaskParser.pushDiff(selection, this.settings.list.selected, this.api);
-				editor.replaceSelection(newMd);
+				const newMd = await TaskParser.processDiffToPost(selection, this.settings.list.selected, this.api);
+				if (newMd) {
+					editor.replaceSelection(newMd);
+				}
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command

@@ -141,7 +141,7 @@ function setAllTasksColor(md: string, color: Color): string {
 	return cache.toString();
 }
 
-async function pushDiff(md: string, targetId: number, api: ApiService): Promise<string> {
+async function processDiffToPost(md: string, targetId: number, api: ApiService): Promise<string> {
 	console.time("push-new:parse-local");
 	const local_cache = TaskCache.fromMarkdown(md);
 	console.timeEnd("push-new:parse-local");
@@ -160,7 +160,7 @@ async function pushDiff(md: string, targetId: number, api: ApiService): Promise<
 	console.time("push-new:create-remote");
 	const idMap = new Map<string, string>();
 
-	// Create all of the tasks from toPost
+	// ----------------- TO POST --------------------
 	// NOTE: they wont have parent and it wont wait for response
 	// to get it done faster
 	await Promise.all(diff.toPost.map(async t => {
@@ -197,6 +197,18 @@ async function pushDiff(md: string, targetId: number, api: ApiService): Promise<
 	}
 	console.timeEnd("push-new:update-local-ids");
 
+	console.log("Diff:", diff);
+
+	// ----------------- TO PUT --------------------
+	console.time("push-new:Put");
+	await Promise.all(diff.toPut.map(async t => {
+		const label = `push-new:Put:${t.name || ''}:${t.id}`;
+		console.time(label);
+		const response = await api.updateTask(t.id, t);
+		console.timeEnd(label);
+	}));
+	console.timeEnd("push-new:Put");
+
 	return local_cache.toString();
 }
 
@@ -224,7 +236,7 @@ export const TaskParser = {
 	getRemoteFull,
 	getColoredDiffMarkdown,
 	setAllTasksColor,
-	pushDiff,
+	processDiffToPost,
 	TaskCache,
 	Colors,
 };

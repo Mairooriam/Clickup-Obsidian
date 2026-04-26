@@ -1,8 +1,3 @@
-
-## [teams] Miro Loisa's Workspace [id:90152327839]
-### [spaces] Team Space [id:90159830416]
-#### [folders] Projects [id:901515206765]
-##### [lists] API_test_lista [id:901522227733]
 - new [id:86c9g0x9f]
 - Task 1 [id:86c9g0wwd]
 	- Task 1.1 [id:86c9g0wwc] [parent:86c9g0wwd]
@@ -16,6 +11,6 @@
 	- testnew [id:86c9g0ww1] [parent:86c9g0wwd]
 - Task 2 [id:86c9g0wwb]
 	- Task 2.2 [id:86c9g0wwj] [parent:86c9g0wwb]
-- Task 3 [id:86c9g0ww6]
-
-
+- Modify [id:86c9g0ww6]
+- new [id:86c9gy7pr]
+- modify [id:86c9gy7pq]
