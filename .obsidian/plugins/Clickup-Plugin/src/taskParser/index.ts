@@ -156,58 +156,80 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 	console.time("push-new:diff");
 	let diff = cacheGenerateDiff(local_cache, remote);
 	console.timeEnd("push-new:diff");
-
-	console.time("push-new:create-remote");
-	const idMap = new Map<string, string>();
-
 	// ----------------- TO POST --------------------
 	// NOTE: they wont have parent and it wont wait for response
 	// to get it done faster
-	await Promise.all(diff.toPost.map(async t => {
-		const label = `push-new:create-task:${t.name || ''}:${t.id}`;
-		console.time(label);
-		const op: CreateTaskOptions = {
-			name: t.name,
-			parent: null,
-		};
-		const response = await api.createTask(targetId, op);
-		console.timeEnd(label);
-		idMap.set(String(t.id), String(response.id));
-	}));
-	console.timeEnd("push-new:create-remote");
+	if (diff.toPost.length) {
+		const idMap = new Map<string, string>();
+		console.time("push-new:create-remote");
+		await Promise.all(diff.toPost.map(async t => {
+			const label = `push-new:create-task:${t.name || ''}:${t.id}`;
+			console.time(label);
+			const op: CreateTaskOptions = {
+				name: t.name,
+				parent: null,
+			};
+			const response = await api.createTask(targetId, op);
+			console.timeEnd(label);
+			idMap.set(String(t.id), String(response.id));
+		}));
+		console.timeEnd("push-new:create-remote");
 
-	// Update the tasks parents to match the previous step 
-	console.time("push-new:update-remote");
-	const updatePromises = diff.toPost
-		.filter(t => t.parent)
-		.map(async t => {
-			const realId = idMap.get(String(t.id));
-			const realParentId = idMap.get(String(t.parent));
+		// Update the tasks parents to match the previous step 
+		console.time("push-new:update-remote");
+		const updatePromises = diff.toPost
+			.filter(t => t.parent)
+			.map(async t => {
+				const realId = idMap.get(String(t.id));
+				const realParentId = idMap.get(String(t.parent));
 
-			if (realId && realParentId) {
-				await api.updateTaskParent(realId, realParentId);
-			}
-		});
-	await Promise.all(updatePromises);
-	console.timeEnd("push-new:update-remote");
+				if (realId && realParentId) {
+					await api.updateTaskParent(realId, realParentId);
+				}
+			});
+		await Promise.all(updatePromises);
+		console.timeEnd("push-new:update-remote");
 
-	console.time("push-new:update-local-ids");
-	for (const [localId, remoteId] of idMap.entries()) {
-		local_cache.updateNodeId(localId, remoteId);
+		console.time("push-new:update-local-ids");
+		for (const [localId, remoteId] of idMap.entries()) {
+			local_cache.updateNodeId(localId, remoteId);
+		}
+		console.timeEnd("push-new:update-local-ids");
+	} else {
+		Logger.log("core", "Nothing to post in local.");
 	}
-	console.timeEnd("push-new:update-local-ids");
-
-	console.log("Diff:", diff);
 
 	// ----------------- TO PUT --------------------
-	console.time("push-new:Put");
-	await Promise.all(diff.toPut.map(async t => {
-		const label = `push-new:Put:${t.name || ''}:${t.id}`;
-		console.time(label);
-		const response = await api.updateTask(t.id, t);
-		console.timeEnd(label);
-	}));
-	console.timeEnd("push-new:Put");
+	if (diff.toPut.length) {
+		console.time("push-new:Put");
+		await Promise.all(diff.toPut.map(async t => {
+			const label = `push-new:Put:${t.name || ''}:${t.id}`;
+			console.time(label);
+			const response = await api.updateTask(t.id, t);
+			console.timeEnd(label);
+		}));
+		console.timeEnd("push-new:Put");
+	} else {
+		Logger.log("core", "Nothing to put in local.");
+	}
+
+	// ----------------- TO PUT --------------------
+	if (diff.toDelete.length) {
+		console.time("push-new:Delete");
+		await Promise.all(diff.toDelete.map(async t => {
+			const label = `push-new:DeleteOne:${t.name || ''}:${t.id}`;
+			console.time(label);
+			const response = await api.deleteTask(t.id);
+			console.timeEnd(label);
+		}));
+		console.timeEnd("push-new:Delete");
+	} else {
+		Logger.log("core", "Nothing to delete in loca.");
+	}
+
+	// ----------------- TO PUT --------------------
+	//
+
 
 	return local_cache.toString();
 }

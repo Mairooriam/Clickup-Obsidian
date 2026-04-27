@@ -72,7 +72,12 @@ export interface HttpResponse<T> {
 	status: number;
 	text: string;
 }
-
+interface FetcherOptions {
+	method?: "GET" | "POST" | "PUT" | "DELETE";
+	body?: string;
+	headers?: Record<string, string>;
+	// Add more fields if needed (e.g., credentials, mode, etc.)
+}
 export class ApiService {
 	private static instance: ApiService;
 	private readonly token: string;
@@ -93,7 +98,7 @@ export class ApiService {
 		return ApiService.instance;
 	}
 
-	private async fetcher<T>(url: string, options: { method?: string; body?: string; headers?: Record<string, string> } = {}): Promise<HttpResponse<T>> {
+	private async fetcher<T>(url: string, options: FetcherOptions = {}): Promise<HttpResponse<T>> {
 		if (this.fetcherOverride) {
 			return this.fetcherOverride<T>(url, options);
 		}
@@ -219,6 +224,12 @@ export class ApiService {
 				"Content-Type": "application/json",
 			},
 		});
+		return response.json;
+	}
+
+	public async deleteTask(task_id: string) {
+		const url = `deletetask/${task_id}`;
+		const response = await this.fetcher<any>(url, { method: "DELETE", });
 		return response.json;
 	}
 	//
