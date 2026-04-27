@@ -74,7 +74,7 @@ describe('Parser', () => {
 
 		expect(errorSpy).toHaveBeenCalledWith(
 			"parser",
-			expect.stringContaining("Task found, bt no team or space context. Tasks must be inside a team > space > folder > list."),
+			expect.stringContaining("Task found, but no team or space context. Tasks must be inside a team > space > folder > list."),
 		);
 
 		errorSpy.mockRestore();

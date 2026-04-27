@@ -14,6 +14,7 @@ export const enum TokenType {
 	HTML_CLOSE = "HTML Close",
 	HEADING = "Heading",
 	SPACE = "Space",
+	STRIKETROUGH = "Striketrough",
 	EOF = "End of File"
 }
 
@@ -80,6 +81,10 @@ export class Lexer {
 	private readText(): string {
 		let text = '';
 		while (!this.isAtEnd() && this.current() !== '\n' && this.current() !== '<') {
+			// Stop at "--" (strikethrough end) if found
+			if (this.current() === '-' && this.peek() === '-') {
+				break;
+			}
 			text += this.current();
 			this.advance();
 		}
@@ -158,9 +163,15 @@ export class Lexer {
 					this.advance();
 					return { type: TokenType.SPACE, value: ' ', row: this.row, col: this.col };
 				case '-':
-					this.advance();
-					this.skipWhitespace();
-					return { type: TokenType.DASH, value: '-', row: this.row, col: this.col };
+					if (this.peek() === ' ') {
+						this.advance();
+						this.skipWhitespace();
+						return { type: TokenType.DASH, value: '-', row: this.row, col: this.col };
+					} else if (this.peek() === '-') {
+						this.advance(2);
+						this.skipWhitespace();
+						return { type: TokenType.STRIKETROUGH, value: '--', row: this.row, col: this.col };
+					}
 				case '[':
 					if (this.peek() === ' ' && this.peek(2) === ']') {
 						this.advance(3);
@@ -257,7 +268,7 @@ export class Lexer {
 						};
 					}
 					this.advance();
-					break;
+
 				}
 			}
 		}
