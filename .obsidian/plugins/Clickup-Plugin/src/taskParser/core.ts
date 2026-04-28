@@ -254,6 +254,13 @@ export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMat
 
 		const remoteTask = remote.map.get(id);
 
+        if (localTask.striketrough) {
+            if (remoteTask) {
+                result.match = false;
+                result.toDelete.push(localTask);
+            }
+            return;
+        }
 		if (!remoteTask) {
 			// Exists locally but not remotely → POST
 			result.match = false;
@@ -271,10 +278,12 @@ export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMat
 		local.children.get(id)?.forEach(compareNode);
 	};
 
-	const collectAllAsPost = (task: Task): void => {
-		result.toPost.push(task);
-		local.children.get(task.id ?? "")?.forEach(collectAllAsPost);
-	};
+    const collectAllAsPost = (task: Task): void => {
+        // Do not post tasks marked for deletion
+        if (task.striketrough) return;
+        result.toPost.push(task);
+        local.children.get(task.id ?? "")?.forEach(collectAllAsPost);
+    };
 
 	local.roots.forEach(compareNode);
 

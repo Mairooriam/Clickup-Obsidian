@@ -95,16 +95,18 @@ export function ClickupListToList(list: _Clickup_List): List {
 export class Task {
 	id: string;
 	level: number; // used in display. not in clickup
+	striketrough: boolean	// Internal
 	name: string;
 	color: Color; // used in display. not in clickup
 	parent?: string;
 	top_level_parent?: string;
 
-	constructor(id: string, level: number, name: string, color: Color = Colors.default) {
+	constructor(id: string, level: number, name: string, color: Color = Colors.default, striketrough: boolean) {
 		this.id = id;
 		this.level = level;
 		this.name = name;
 		this.color = color;
+		this.striketrough = striketrough;
 	}
 
 	toString(): string {
@@ -112,10 +114,12 @@ export class Task {
 		const parent = this.parent ? ` [parent:${this.parent}]` : "";
 		const content = `${indent}- ${this.name} [id:${this.id}]${parent}`;
 
+		const displayContent = this.striketrough ? `~~${content}~~` : content;
+
 		if (this.color) {
-			return `<span style="color:${this.color};white-space:pre">${content}</span>`;
+			return `<span style="color:${this.color};white-space:pre">${displayContent}</span>`;
 		}
-		return content;
+		return displayContent;
 	}
 }
 
@@ -124,7 +128,7 @@ export function tasksToString(tasks: Task[]): string {
 }
 
 export function ClickupTaskToTask(task: _Clickup_Task): Task {
-	const t = new Task(task.id, 0, task.name);
+	const t = new Task(task.id, 0, task.name, Colors.default, false);
 	t.parent = task.parent ?? undefined;
 	t.top_level_parent = task.top_level_parent ?? undefined;
 	return t;

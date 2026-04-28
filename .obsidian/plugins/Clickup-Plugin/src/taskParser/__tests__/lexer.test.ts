@@ -105,18 +105,18 @@ describe('Lexer', () => {
 		});
 	});
 	it('tokenizes a simple task to be deleted', () => {
-		const lexer = new Lexer('- --Task 1 [id:abc123]--');
+		const lexer = new Lexer('- ~~Task 1 [id:abc123]~~');
 		const tokens = lexer.tokenize();
 
 		expect(tokens.length).toBe(4);
 
 		expect(tokens[0]).toMatchObject({ type: 'Dash', value: '-' });
-		expect(tokens[1]).toMatchObject({ type: 'Striketrough', value: '--' });
+		expect(tokens[1]).toMatchObject({ type: 'Striketrough', value: '~~' });
 		expect(tokens[2]).toMatchObject({
 			type: 'Text',
 			value: 'Task 1',
 			flags: { id: 'abc123' }
 		});
-		expect(tokens[3]).toMatchObject({ type: 'Striketrough', value: '--' });
+		expect(tokens[3]).toMatchObject({ type: 'Striketrough', value: '~~' });
 	});
 });

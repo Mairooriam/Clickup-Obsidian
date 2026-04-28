@@ -214,18 +214,19 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 	}
 
 	// ----------------- TO PUT --------------------
-	if (diff.toDelete.length) {
-		console.time("push-new:Delete");
-		await Promise.all(diff.toDelete.map(async t => {
-			const label = `push-new:DeleteOne:${t.name || ''}:${t.id}`;
-			console.time(label);
-			const response = await api.deleteTask(t.id);
-			console.timeEnd(label);
-		}));
-		console.timeEnd("push-new:Delete");
-	} else {
-		Logger.log("core", "Nothing to delete in loca.");
-	}
+    if (diff.toDelete.length) {
+        console.time("push-new:Delete");
+        await Promise.all(diff.toDelete.map(async t => {
+            const label = `push-new:DeleteOne:${t.name || ''}:${t.id}`;
+            console.time(label);
+            const response = await api.deleteTask(t.id);
+            console.timeEnd(label);
+            local_cache.removeNode(t.id);
+        }));
+        console.timeEnd("push-new:Delete");
+    } else {
+        Logger.log("core", "Nothing to delete in loca.");
+    }
 
 	// ----------------- TO PUT --------------------
 	//

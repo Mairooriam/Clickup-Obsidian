@@ -6,8 +6,8 @@ import { generateId } from "./id.js";
 import { Color, Colors, toColor } from "./utils/colors.js";
 import { Logger } from "./utils/logger.js";
 
-function taskFromToken(id: string, level: number, name: string, color: Color, flags?: Record<string, any>): Task {
-	const task = new Task(id, level, name, color);
+function taskFromToken(id: string, level: number, name: string, color: Color, striketrough: boolean, flags?: Record<string, any>): Task {
+	const task = new Task(id, level, name, color, striketrough);
 	if (flags) Object.assign(task, flags);
 	return task;
 }
@@ -95,19 +95,39 @@ export class Parser {
 				this.next();
 			}
 
+			let striketrough = 0;
+			if (this.isToken(TokenType.STRIKETROUGH)) {
+				this.next();
+				striketrough++;
+			}
+
+
+			let taskToken: Token;
 			if (!this.isToken(TokenType.TEXT)) {
 				this.skipToNextLine();
 				continue;
+			} else {
+				taskToken = this.current();
+				this.next()
 			}
+
+			if (this.isToken(TokenType.STRIKETROUGH)) {
+				this.next();
+				striketrough++;
+			}
+
 
 			const task = taskFromToken(
 				generateId("placeholder"),
 				indent,
-				this.currentToken.value,
+				taskToken.value,
 				color,
-				this.currentToken.flags
+				striketrough > 1,
+				taskToken.flags
+
 			);
 			this.next();
+
 
 			allTasks.push(task);
 		}
@@ -190,37 +210,37 @@ export class Parser {
 				this.next();
 				if (this.isToken(TokenType.FLAG) && this.current().value === "lists") {
 					this.next();
-				if (this.isToken(TokenType.TEXT)) {
-					const name = this.currentToken.value;
-					const id = this.currentToken.flags?.id ?? generateId("list");
-					currentList = {
-						id: Number(id),
-						name,
-						orderIndex: 0,
-						tasks: []
-					};
-					if (currentFolder) currentFolder.lists.push(currentList);
-					this.next();
-					continue;
+					if (this.isToken(TokenType.TEXT)) {
+						const name = this.currentToken.value;
+						const id = this.currentToken.flags?.id ?? generateId("list");
+						currentList = {
+							id: Number(id),
+							name,
+							orderIndex: 0,
+							tasks: []
+						};
+						if (currentFolder) currentFolder.lists.push(currentList);
+						this.next();
+						continue;
+					}
 				}
 			}
-		}
 
-		// Parse Tasks under current List or Folder
-		if (this.isToken(TokenType.DASH)) {
-			const tasks = this.parseTaskList();
+			// Parse Tasks under current List or Folder
+			if (this.isToken(TokenType.DASH)) {
+				const tasks = this.parseTaskList();
 
-			if (!currentTeam || !currentSpace) {
-				Logger.error("parser", "Task found, but no team or space context. Tasks must be inside a team > space > folder > list.");
-			} else if (!currentFolder) {
-				Logger.error("parser", "Task found, but no folder context. Tasks must be inside a folder > list.");
-			} else if (!currentList) {
-				Logger.error("parser", "Task found, but no list context. Tasks must be inside a list.");
-			} else {
-				currentList.tasks.push(...tasks);
+				if (!currentTeam || !currentSpace) {
+					Logger.error("parser", "Task found, but no team or space context. Tasks must be inside a team > space > folder > list.");
+				} else if (!currentFolder) {
+					Logger.error("parser", "Task found, but no folder context. Tasks must be inside a folder > list.");
+				} else if (!currentList) {
+					Logger.error("parser", "Task found, but no list context. Tasks must be inside a list.");
+				} else {
+					currentList.tasks.push(...tasks);
+				}
+				continue;
 			}
-			continue;
-		}
 
 			this.next();
 		}

@@ -228,7 +228,7 @@ export class ApiService {
 	}
 
 	public async deleteTask(task_id: string) {
-		const url = `deletetask/${task_id}`;
+		const url = `task/${task_id}`;
 		const response = await this.fetcher<any>(url, { method: "DELETE", });
 		return response.json;
 	}

@@ -12,6 +12,36 @@ describe('Parser', () => {
 		expect(tasks[0]!.name).toBe('Task 1');
 		expect(tasks[0]!.id).toBe('abc123');
 	});
+	it('parses a simple task to be deleted', () => {
+		const lexer = new Lexer('- ~~Task 1 [id:abc123]~~');
+		const tokens = lexer.tokenize();
+		const parser = new Parser(tokens);
+		const tasks = parser.parseTasks();
+		console.log(tokens);
+		console.log(tasks);
+
+		expect(tasks.length).toBe(1);
+		expect(tasks[0]!.name).toBe('Task 1');
+		expect(tasks[0]!.id).toBe('abc123');
+		expect(tasks[0]!.striketrough).toBeDefined();
+		expect(tasks[0]!.striketrough).toBe(true);
+
+	});
+
+	it('parses a simple task to be deleted malformed', () => {
+		const lexer = new Lexer('- ~~Task 1 [id:abc123]');
+		const tokens = lexer.tokenize();
+		const parser = new Parser(tokens);
+		const tasks = parser.parseTasks();
+
+		console.log(tasks);
+		expect(tasks.length).toBe(1);
+		expect(tasks[0]!.name).toBe('Task 1');
+		expect(tasks[0]!.id).toBe('abc123');
+		expect(tasks[0]!.striketrough).toBeDefined();
+		expect(tasks[0]!.striketrough).toBe(false);
+
+	});
 
 	//TODO: rmove these probably
 	it('fails when there is no list for tasks', () => {

@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "testing.md",
+                "file": "testing big.md",
                 "mode": "source",
                 "source": false,
                 "backlinks": true,
@@ -28,7 +28,7 @@
                 }
               },
               "icon": "lucide-file",
-              "title": "testing"
+              "title": "testing big"
             }
           }
         ]
@@ -197,7 +197,7 @@
   "active": "9d05a601adedcf37",
   "lastOpenFiles": [
     "test_api_key",
-    "testing.md",
+    "testing big.md",
     "build/cache.md",
     "obsidian-sample-plugin/versions.json",
     "obsidian-sample-plugin/version-bump.mjs",

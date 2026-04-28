@@ -82,7 +82,7 @@ export class Lexer {
 		let text = '';
 		while (!this.isAtEnd() && this.current() !== '\n' && this.current() !== '<') {
 			// Stop at "--" (strikethrough end) if found
-			if (this.current() === '-' && this.peek() === '-') {
+			if (this.current() === '~' && this.peek() === '~') {
 				break;
 			}
 			text += this.current();
@@ -167,10 +167,12 @@ export class Lexer {
 						this.advance();
 						this.skipWhitespace();
 						return { type: TokenType.DASH, value: '-', row: this.row, col: this.col };
-					} else if (this.peek() === '-') {
+					}
+				case '~':
+					if (this.peek() === '~') {
 						this.advance(2);
 						this.skipWhitespace();
-						return { type: TokenType.STRIKETROUGH, value: '--', row: this.row, col: this.col };
+						return { type: TokenType.STRIKETROUGH, value: '~~', row: this.row, col: this.col };
 					}
 				case '[':
 					if (this.peek() === ' ' && this.peek(2) === ']') {
