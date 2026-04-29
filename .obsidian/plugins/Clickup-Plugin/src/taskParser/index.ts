@@ -225,6 +225,7 @@ export const TaskParser = {
 	getColoredDiffMarkdown,
 	setAllTasksColor,
 	processDiffToPost,
+	ApiService,
 	TaskCache,
 	Colors,
 };

@@ -1,9 +1,9 @@
-import { App, Editor, MarkdownView, Notice } from "obsidian";
-import { ApiService, GetTasksOptions } from "taskParser/api/ApiService";
-import { TaskCache } from "taskParser/core";
+import { App, Editor, MarkdownView, Notice, View } from "obsidian";
 import { GenericSuggestModal } from "./components/suggestModal";
 import type { Team, Space, Folder, List } from "taskParser/api/types";
 import MyPlugin from "main";
+import { askYesNo } from "components/YesNoModal";
+import { TaskParser } from "taskParser";
 
 async function selectFromModal<T>(
 	app: App,
@@ -23,15 +23,8 @@ async function selectFromModal<T>(
 //TODO: i dont like this. fethc the whole structure? maybe? loading in between choosing team -> space -> folder. but then again user
 //should set them just once. not be touching it all the time.
 export async function cmdAskAndSetClickupSettings(plugin: MyPlugin, editor: Editor, view: MarkdownView) {
-	const apiKey = plugin.settings.apiKey;
-	if (!apiKey) {
-		new Notice("API key not set. Please enter it in the plugin settings.");
-		return;
-	}
-	const api = ApiService.getInstance(apiKey);
-
 	//TEAMS
-	const teams = await api.getTeams();
+	const teams = await plugin.api.getTeams();
 	const team = await selectFromModal<Team>(plugin.app, teams, t => t.name);
 	if (!team) {
 		new Notice("Team selection failed");
@@ -43,7 +36,7 @@ export async function cmdAskAndSetClickupSettings(plugin: MyPlugin, editor: Edit
 	await plugin.saveSettings();
 
 	//SPACES 
-	const spaces = await api.getSpaces(team.id);
+	const spaces = await plugin.api.getSpaces(team.id);
 	const space = await selectFromModal<Space>(plugin.app, spaces, s => s.name);
 	if (!space) {
 		new Notice("Space selection failed");
@@ -55,7 +48,7 @@ export async function cmdAskAndSetClickupSettings(plugin: MyPlugin, editor: Edit
 	await plugin.saveSettings();
 
 	// FOLDERS
-	const folders = await api.getFolders(space.id);
+	const folders = await plugin.api.getFolders(space.id);
 	const folder = await selectFromModal<Folder>(plugin.app, folders, f => f.name);
 	if (!folder) {
 		new Notice("Folder selection failed");
@@ -82,3 +75,47 @@ export async function cmdAskAndSetClickupSettings(plugin: MyPlugin, editor: Edit
 	plugin.settings.list.data = { lists };
 	await plugin.saveSettings();
 }
+
+export async function cmdCheckDiff(plugin: MyPlugin, editor: Editor, view: MarkdownView) {
+	// Validate settings
+	if (!plugin.settings.list.selected) {
+		const yes = await askYesNo(plugin.app, "No settings selected. Do you want to select them?");
+		new Notice(yes ? "You chose Yes" : "You chose No");
+
+		if (!yes) {
+			return;
+		} else {
+			await cmdAskAndSetClickupSettings(plugin, editor, view);
+		};
+	}
+
+	const localMd = editor.getSelection();
+	const remoteId = plugin.settings.list.selected;
+	const coloredCache = await TaskParser.getColoredDiffMarkdown(localMd, remoteId, plugin.api);
+	editor.replaceSelection(coloredCache);
+}
+
+export async function cmdGetRemote(plugin: MyPlugin, editor: Editor, view: MarkdownView) {
+	//TODO: nicer way to do this?
+	if (!plugin.settings.list.selected) {
+		const yes = await askYesNo(plugin.app, "No settings selected. Do you want to select them?");
+		new Notice(yes ? "You chose Yes" : "You chose No");
+
+		if (!yes) {
+			return;
+		} else {
+			await cmdAskAndSetClickupSettings(plugin, editor, view);
+		};
+	}
+
+	// Gets tasks from clickup
+	const md = await TaskParser.getRemote(plugin.settings.list.selected, plugin.api);
+	editor.replaceSelection(md);
+}
+
+export async function cmdRemoveSelectionColor(plugin: MyPlugin, editor: Editor, view: MarkdownView) {
+	let md = editor.getSelection();
+	const newMd = TaskParser.setAllTasksColor(md, TaskParser.Colors.default);
+	editor.replaceSelection(newMd);
+}
+

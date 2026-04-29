@@ -3,10 +3,10 @@ import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings
 import { EditorView, ViewUpdate } from "@codemirror/view";
 // Remember to rename these classes and interfaces!
 import { ApiService } from "./taskParser/api/ApiService";
-import { cmdAskAndSetClickupSettings } from 'commands';
+import { checkDiff, cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor } from 'commands';
 import { askYesNo } from 'components/YesNoModal';
 
-import { TaskParser } from 'taskParser';
+import { getRemote, TaskParser } from 'taskParser';
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	api: ApiService;
@@ -23,7 +23,6 @@ export default class MyPlugin extends Plugin {
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
 		statusBarItemEl.setText('Status bar text');
-
 		if (this.settings.apiKey && this.settings.team.refreshOnOpen) {
 			try {
 				const teams = await this.api.getTeams();
@@ -54,23 +53,10 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = ApiService.getInstance(apiKey);
+				this.api = TaskParser.ApiService.getInstance(apiKey);
 
-				//TODO: nicer way to do this?
-				if (!this.settings.list.selected) {
-					const yes = await askYesNo(this.app, "No settings selected. Do you want to select them?");
-					new Notice(yes ? "You chose Yes" : "You chose No");
+				cmdGetRemote(this, editor, view);
 
-					if (!yes) {
-						return;
-					} else {
-						await cmdAskAndSetClickupSettings(this, editor, view);
-					};
-				}
-
-				// Gets tasks from clickup
-				const md = await TaskParser.getRemote(this.settings.list.selected, this.api);
-				editor.replaceSelection(md);
 			}
 		});
 		this.addCommand({
@@ -82,24 +68,8 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = ApiService.getInstance(apiKey);
-
-				// Validate settings
-				if (!this.settings.list.selected) {
-					const yes = await askYesNo(this.app, "No settings selected. Do you want to select them?");
-					new Notice(yes ? "You chose Yes" : "You chose No");
-
-					if (!yes) {
-						return;
-					} else {
-						await cmdAskAndSetClickupSettings(this, editor, view);
-					};
-				}
-
-				const localMd = editor.getSelection();
-				const remoteId = this.settings.list.selected;
-				const coloredCache = await TaskParser.getColoredDiffMarkdown(localMd, remoteId, this.api);
-				editor.replaceSelection(coloredCache);
+				this.api = TaskParser.ApiService.getInstance(apiKey);
+				cmdCheckDiff(this, editor, view);
 			}
 		});
 		this.addCommand({
@@ -111,24 +81,20 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = ApiService.getInstance(apiKey);
-				let md = editor.getSelection();
-				const newMd = TaskParser.setAllTasksColor(md, TaskParser.Colors.default);
-				editor.replaceSelection(newMd);
+				this.api = TaskParser.ApiService.getInstance(apiKey);
+				cmdRemoveSelectionColor(this, editor, view);
 			}
 		});
 		this.addCommand({
 			id: 'set-settings',
 			name: 'Set settings',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-
 				const apiKey = this.settings.apiKey;
 				if (!apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
 				this.api = ApiService.getInstance(apiKey);
-
 				cmdAskAndSetClickupSettings(this, editor, view);
 			}
 		});
