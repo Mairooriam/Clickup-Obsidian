@@ -185,8 +185,6 @@ export class _ApiService {
 		return ClickupFolderToFolder(response.json);
 	}
 
-
-
 	public async getLists(folder_id: string): Promise<List[]> {
 		const response = await this.fetcher<_Clickup_Lists>(`space/${folder_id}/folder`);
 		const lists = response.json.lists ?? [];
@@ -206,19 +204,10 @@ export class _ApiService {
 		return tasks.map(ClickupTaskToTask);
 	}
 
+	//TODO: make typed
 	public async updateTaskParent(task_id: string, newParent: string) {
-		const url = `task/${task_id}`;
-		const response = await this.fetcher<any>(url, {
-			method: "PUT",
-			body: JSON.stringify({ parent: newParent }),
-			headers: {
-				"Content-Type": "application/json",
-			},
-		});
-		return response.json;
+		return this.updateTask(task_id, { parent: newParent } as any);
 	}
-
-
 
 	//TODO: make typejd
 	public async updateTask(task_id: string, task: Task) {
@@ -243,52 +232,6 @@ export class _ApiService {
 		const response = await this.fetcher<any>(url, { method: "DELETE", });
 		return response.json;
 	}
-	//
-	// public async getToken(input: string): Promise<string | undefined> {
-	//   if (!input) return "MISSING_TOKEN";
-	//
-	//   let token = input.trim();
-	//
-	//   // Supports full JSON pasted from your Python callback:
-	//   // {"access_token":"...","token_type":"Bearer"}
-	//   try {
-	//     const parsed = JSON.parse(token) as { access_token?: string };
-	//     if (parsed?.access_token) token = parsed.access_token;
-	//   } catch {
-	//     // raw token, ignore
-	//   }
-	//
-	//   try {
-	//     localStorage.setItem("click_up_token", token);
-	//
-	//     // Validate token immediately
-	//     const user = await this.getAuthorizedUser();
-	//     if (!user?.id) throw new Error("Invalid token");
-	//
-	//     return token;
-	//   } catch (error) {
-	//     localStorage.removeItem("click_up_token");
-	//     console.error("Error during getToken()", error);
-	//     return undefined;
-	//   }
-	// }
-
-
-
-
-	// public async getList(folder_id: string) {
-	// 	const response = await this.fetcher(`folder/${folder_id}/list`);
-	// 	const data = await response.json as any;
-	// 	return data.lists;
-	// }
-	//
-	// public async getFolderlessList(space_id: string) {
-	// 	const response = await this.fetcher(`space/${space_id}/list`);
-	// 	const data = await response.json as any;
-	// 	return data.lists;
-	// }
-	//
-	//
 
 	//TODO: make proper return type instead of internal type
 	public async createTask(listId: number, task: CreateTaskOptions): Promise<_Clickup_CreateTask> {
@@ -304,76 +247,5 @@ export class _ApiService {
 			list: d.list,
 			date_created: d.date_created,
 		};
-	}
-	//
-	// public async createTaskTemp(listId: number, task: CreateTaskOptions) {
-	// 	void (listId)
-	// 	return {
-	// 		id: this.tempID++,
-	// 		name: task.name,
-	// 		parent: task.parent,
-	// 	};
-	// }
-	//
-	// // public async getClickupLists(folderId: string): Promise<TAllLists[]> {
-	// // 	const response = await this.fetcher(`folder/${folderId}/list`);
-	// // 	const data = await response.json;
-	// // 	return data.lists;
-	// // }
-	//
-	// public async getWorkspaceUser(teamId: string, userId: string) {
-	// 	const response = await this.fetcher(`team/${teamId}/user/${userId}`);
-	// 	const data = await response.json;
-	// 	return data;
-	// }
-	//
-	// public async getAllFolders(space_id: string) {
-	// 	const response = await this.fetcher(`space/${space_id}/folder`);
-	// 	const data = await response.json as any;
-	// 	return data.folders;
-	// }
-
-	// public async getListMembers(list_id: string): Promise<TMember[]> {
-	// 	const response = await this.fetcher(`list/${list_id}/member`);
-	// 	const data = await response.json;
-	// 	return data.members;
-	// }
-
-	// public async createTask({
-	// 	listId,
-	// 	data,
-	// }: {
-	// 	listId: string;
-	// 	data: TCreateTask;
-	// }) {
-	// 	const response = await this.fetcher(`list/${listId}/task`, {
-	// 		method: "POST",
-	// 		body: JSON.stringify(data),
-	// 		headers: {
-	// 			"Content-Type": "application/json",
-	// 		},
-	// 	});
-	// 	const responseData = await response.json;
-	// 	return responseData;
-	// }
-
-
-	public async showError(
-		e: Error
-	): Promise<{ isAuth: boolean; message: string }> {
-		console.log(e);
-		if (e.message.includes("Oauth token not found")) {
-			console.log("Erorr related to authorization");
-			// new Notice(
-			//   "Error related to authorization, please re-login",
-			//   10000
-			// );
-			console.log("Error related to authorization, please re-login");
-			return { isAuth: false, message: "no auth" };
-		} else {
-			// new Notice(`Error: ${e.message}`, 5000);
-			console.log(`Error ${e.message}`, 5000);
-			return { isAuth: true, message: e.message };
-		}
 	}
 }
