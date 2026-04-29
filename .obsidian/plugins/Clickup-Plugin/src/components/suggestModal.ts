@@ -1,5 +1,5 @@
 import { App, SuggestModal } from "obsidian";
-import type { Team } from "taskParser/apiTypes";
+import type { Team } from "taskParser/api/types";
 
 export class GenericSuggestModal<T> extends SuggestModal<T> {
     constructor(

@@ -17,8 +17,6 @@ describe('Parser', () => {
 		const tokens = lexer.tokenize();
 		const parser = new Parser(tokens);
 		const tasks = parser.parseTasks();
-		console.log(tokens);
-		console.log(tasks);
 
 		expect(tasks.length).toBe(1);
 		expect(tasks[0]!.name).toBe('Task 1');
@@ -34,7 +32,6 @@ describe('Parser', () => {
 		const parser = new Parser(tokens);
 		const tasks = parser.parseTasks();
 
-		console.log(tasks);
 		expect(tasks.length).toBe(1);
 		expect(tasks[0]!.name).toBe('Task 1');
 		expect(tasks[0]!.id).toBe('abc123');

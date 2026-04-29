@@ -1,9 +1,10 @@
 import { App, Editor, MarkdownView, Notice } from "obsidian";
-import { ApiService, GetTasksOptions } from "taskParser/ApiService";
+import { ApiService, GetTasksOptions } from "taskParser/api/ApiService";
 import { TaskCache } from "taskParser/core";
 import { GenericSuggestModal } from "./components/suggestModal";
-import type { Team, Space, Folder, List } from "taskParser/apiTypes";
+import type { Team, Space, Folder, List } from "taskParser/api/types";
 import MyPlugin from "main";
+
 async function selectFromModal<T>(
 	app: App,
 	items: T[],

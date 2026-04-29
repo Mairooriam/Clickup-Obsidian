@@ -1,11 +1,11 @@
-import { _Clickup_List, _Clickup_Lists } from "./apiTypes/getLists";
-import { _Clickup_Tasks } from "./apiTypes/getTasks";
-import { Team, Space, Folder, Task, ClickupTaskToTask, List, ClickupListToList } from "./apiTypes/index"
-import { _Clickup_Teams, _Clickup_Spaces, _Clickup_Folders } from "./apiTypes/index"
-import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from "./apiTypes/index"
-import { _Clickup_CreateTask } from "./apiTypes/createTask";
-import { _Clickup_Space } from "./apiTypes/getSpaces";
-import { _Clickup_Folder } from "./apiTypes/getFolders";
+import { _Clickup_List, _Clickup_Lists } from "./types/getLists";
+import { _Clickup_Tasks } from "./types/getTasks";
+import { Team, Space, Folder, Task, ClickupTaskToTask, List, ClickupListToList } from "./types/index"
+import { _Clickup_Teams, _Clickup_Spaces, _Clickup_Folders } from "./types/index"
+import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from "./types/index"
+import { _Clickup_CreateTask } from "./types/createTask";
+import { _Clickup_Space } from "./types/getSpaces";
+import { _Clickup_Folder } from "./types/getFolders";
 
 //TODO: think of something else?
 function cleanObject<T, K extends keyof T>(obj: T, keys: K[]): Partial<Pick<T, K>> {
@@ -78,8 +78,11 @@ interface FetcherOptions {
 	headers?: Record<string, string>;
 	// Add more fields if needed (e.g., credentials, mode, etc.)
 }
-export class ApiService {
-	private static instance: ApiService;
+/*
+ * MEANT FOR INTERNAL USE OR IF U DONT WANT LOGGING
+ * */
+export class _ApiService {
+	private static instance: _ApiService;
 	private readonly token: string;
 	private tempID: number;
 	private fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>;
@@ -90,12 +93,12 @@ export class ApiService {
 		this.fetcherOverride = fetcherOverride;
 	}
 
-	public static getInstance(token?: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>): ApiService {
-		if (!ApiService.instance) {
-			if (!token) throw new Error("ApiService requires a token on first initialization");
-			ApiService.instance = new ApiService(token, fetcherOverride);
+	public static getInstance(token?: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>): _ApiService {
+		if (!_ApiService.instance) {
+			if (!token) throw new Error("_ApiService requires a token on first initialization");
+			_ApiService.instance = new _ApiService(token, fetcherOverride);
 		}
-		return ApiService.instance;
+		return _ApiService.instance;
 	}
 
 	private async fetcher<T>(url: string, options: FetcherOptions = {}): Promise<HttpResponse<T>> {
@@ -149,19 +152,21 @@ export class ApiService {
 	}
 
 	public async getAuthorizedUser() {
-		const resp = await this.fetcher(`user`);
-		const data = await resp.json as any;
+		const response = await this.fetcher(`user`);
+		const data = await response.json as any;
 		return data.user;
 	}
 
 	public async getTeams(): Promise<Team[]> {
-		const resp = await this.fetcher<_Clickup_Teams>(`team`);
-		return resp.json.teams.map(ClickupTeamToTeam);
+		const response = await this.fetcher<_Clickup_Teams>(`team`);
+		const teams = response.json.teams ?? [];
+		return teams.map(ClickupTeamToTeam);
 	}
 
 	public async getSpaces(teamId: string): Promise<Space[]> {
 		const response = await this.fetcher<_Clickup_Spaces>(`team/${teamId}/space`);
-		return response.json.spaces.map(ClickupSpaceToSpace);
+		const spaces = response.json.spaces ?? [];
+		return spaces.map(ClickupSpaceToSpace);
 	}
 
 	public async getSpace(spaceId: string): Promise<Space> {
@@ -171,7 +176,8 @@ export class ApiService {
 
 	public async getFolders(space_id: string): Promise<Folder[]> {
 		const response = await this.fetcher<_Clickup_Folders>(`space/${space_id}/folder`);
-		return response.json.folders.map(ClickupFolderToFolder);
+		const folders = response.json.folders ?? [];
+		return folders.map(ClickupFolderToFolder);
 	}
 
 	public async getFolder(folderId: string): Promise<Folder> {
@@ -179,9 +185,12 @@ export class ApiService {
 		return ClickupFolderToFolder(response.json);
 	}
 
+
+
 	public async getLists(folder_id: string): Promise<List[]> {
 		const response = await this.fetcher<_Clickup_Lists>(`space/${folder_id}/folder`);
-		return response.json.lists.map(ClickupListToList);
+		const lists = response.json.lists ?? [];
+		return lists.map(ClickupListToList);
 	}
 
 	public async getList(listId: number): Promise<List> {
@@ -189,12 +198,12 @@ export class ApiService {
 		return ClickupListToList(response.json);
 	}
 
-
 	public async getTasks(list_id: number, options?: GetTasksOptions): Promise<Task[]> {
 		const queryString = this.buildQueryParams(options);
 		const url = `list/${list_id}/task?${queryString}`;
 		const response = await this.fetcher<_Clickup_Tasks>(url);
-		return response.json.tasks.map(ClickupTaskToTask);
+		const tasks = response.json.tasks ?? [];
+		return tasks.map(ClickupTaskToTask);
 	}
 
 	public async updateTaskParent(task_id: string, newParent: string) {
@@ -211,6 +220,7 @@ export class ApiService {
 
 
 
+	//TODO: make typejd
 	public async updateTask(task_id: string, task: Task) {
 		const url = `task/${task_id}`;
 		const fieldsToSend: (keyof Task)[] = [
@@ -227,6 +237,7 @@ export class ApiService {
 		return response.json;
 	}
 
+	//TODO: make typed
 	public async deleteTask(task_id: string) {
 		const url = `task/${task_id}`;
 		const response = await this.fetcher<any>(url, { method: "DELETE", });

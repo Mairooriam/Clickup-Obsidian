@@ -24,6 +24,7 @@ function getCircularReplacer() {
 export type LoggerKey =
 	| "taskParser.index"
 	| "parser"
+	| "api"
 	| "cache"
 	| "diff"
 	| "ui"
@@ -51,6 +52,7 @@ const logLevels: Record<LogLevel, number> = {
 
 let config: LoggerConfig = {};
 
+//TODO: make logger differnelty since formatting bad for this logger.
 export namespace Logger {
 	/**
 	 * Set the logging level for a specific key.

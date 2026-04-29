@@ -1,5 +1,5 @@
-import { Task } from "./apiTypes/index.js";
-import { generateId } from "./id.js";
+import { Task } from "./api/types/index.js";
+import { generateId } from "./utils/id.js";
 import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
 import { Stack } from "./types.js"

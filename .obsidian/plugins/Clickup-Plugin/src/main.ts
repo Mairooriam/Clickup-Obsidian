@@ -2,7 +2,7 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 // Remember to rename these classes and interfaces!
-import { ApiService } from "./taskParser/ApiService";
+import { ApiService } from "./taskParser/api/ApiService";
 import { cmdAskAndSetClickupSettings } from 'commands';
 import { askYesNo } from 'components/YesNoModal';
 

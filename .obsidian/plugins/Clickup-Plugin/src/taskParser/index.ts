@@ -1,68 +1,14 @@
 
 import { Parser } from "./parser.js"
 
-import { tasksResolveParents, taskMatch, cacheGenerateDiff, TaskCache } from "./core.js"
-import { ApiService, GetTasksOptions, CreateTaskOptions } from "./ApiService.js";
+import { cacheGenerateDiff, TaskCache } from "./core.js"
+import { ApiService, GetTasksOptions, CreateTaskOptions } from "./api/ApiService.js";
 import { Lexer } from "./lexer.js"
-import { ClickupTaskToTask, Task, tasksToString, Team, teamsToMarkdown, teamToMarkdown } from "./apiTypes/index.js"
 import { Logger } from "./utils/logger.js";
 import { Color, Colors } from "./utils/colors.js";
 import { inspect } from "util";
+import { catchError } from "./utils/error.js"
 
-export async function getRemoteFull(teamId: string, spaceId: string, folderId: string, listId: number, api: ApiService): Promise<string> {
-	let team: Team | null = null;
-	try {
-		const teams = await api.getTeams();
-		for (const _team of teams) {
-			if (_team.id === teamId) {
-				team = _team;
-				break;
-			}
-		}
-
-		if (!team) {
-			Logger.error("core", `teamId: ${teamId} was not found on the remote`);
-			return "";
-		}
-
-		let space = await api.getSpace(spaceId);
-		if (!space) {
-			Logger.error("core", `spaceId: ${spaceId} was not found on the remote`);
-			return "";
-		} else {
-			team.spaces.push(space);
-		}
-
-		let folder = await api.getFolder(folderId);
-		if (!folder) {
-			Logger.error("core", `folderId: ${folderId} was not found on the remote`);
-			return "";
-		} else {
-			folder.lists = folder.lists.filter((list: any) => list.id === listId);
-
-			let options: GetTasksOptions = {};
-			options.subtasks = true;
-			let tasks = await api.getTasks(listId, options);
-			if (!tasks) {
-				Logger.error("core", `listId: ${listId} doesn't contain tasks`);
-				return "";
-			}
-			if (folder.lists.length > 0) {
-				folder.lists[0]!.tasks = tasks;
-			}
-
-			space.folders.push(folder);
-		}
-
-		// let local = TaskCache.fromApi(tasks);
-		const result = teamToMarkdown(team);
-		return result;
-	} catch (e) {
-		//TODO: make logger differnelty since formatting bad for this logger.
-		Logger.error("taskParser.index", "Failed to fetch remote tasks:", e);
-		return "";
-	}
-}
 /**
  * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
  *
@@ -76,19 +22,17 @@ export async function getRemoteFull(teamId: string, spaceId: string, folderId: s
 export async function getRemote(listId: number, api: ApiService): Promise<string> {
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
-	try {
-		const tasks = await api.getTasks(listId, options);
-		Logger.log("taskParser.index", "Tasks:", tasks);
-		let local = TaskCache.fromApi(tasks);
-		Logger.log("taskParser.index", "Local cache", local)
-		const cacheString = local.toString();
-		Logger.log("taskParser.index", "Cache as string:", cacheString.toString());
-		return local.toString();
-	} catch (e) {
-		//TODO: make logger differnelty since formatting bad for this logger.
-		Logger.error("taskParser.index", "Failed to fetch remote tasks:", e);
+	const [err, tasks] = await catchError(api.getTasks(listId, options));
+	if (err) {
 		return "";
 	}
+
+	Logger.log("taskParser.index", "Tasks:", tasks);
+	let local = TaskCache.fromApi(tasks);
+	Logger.log("taskParser.index", "Local cache", local)
+	const cacheString = local.toString();
+	Logger.log("taskParser.index", "Cache as string:", cacheString.toString());
+	return local.toString();
 }
 
 /**
@@ -111,12 +55,15 @@ async function getColoredDiffMarkdown(localMd: string, remoteId: number, api: Ap
 
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
-	const remote_tasks = await api.getTasks(remoteId, options);
+	const [err, remote_tasks] = await catchError(api.getTasks(remoteId, options));
+	if (err) {
+		return "";
+	}
+
 	let cacheRemote = TaskCache.fromApi(remote_tasks);
-
 	let diff = cacheGenerateDiff(cache, cacheRemote);
-
 	cache.setColorForAll(Colors.White);
+
 	diff.toPost.forEach(task => cache.setColorForSubtree(task.id, Colors.Green));
 	diff.toPut.forEach(task => cache.setColorForSubtree(task.id, Colors.Blue));
 	diff.toDelete.forEach(task => cache.setColorForSubtree(task.id, Colors.Red));
@@ -149,7 +96,11 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 	console.time("push-new:get-remote");
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
-	const remote_tasks = await api.getTasks(targetId, options);
+	const [err, remote_tasks] = await catchError(api.getTasks(targetId, options));
+	if (err) {
+		return "";
+	}
+
 	let remote = TaskCache.fromApi(remote_tasks);
 	console.timeEnd("push-new:get-remote");
 
@@ -169,9 +120,13 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 				name: t.name,
 				parent: null,
 			};
-			const response = await api.createTask(targetId, op);
-			console.timeEnd(label);
-			idMap.set(String(t.id), String(response.id));
+			const [err, response] = await catchError(api.createTask(targetId, op));
+			if (!err) {
+				console.timeEnd(label);
+				idMap.set(String(t.id), String(response.id));
+			} else {
+				Logger.error("taskParser.index", "Failed to fetch create task. skipping.", t.toString());
+			}
 		}));
 		console.timeEnd("push-new:create-remote");
 
@@ -184,7 +139,11 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 				const realParentId = idMap.get(String(t.parent));
 
 				if (realId && realParentId) {
-					await api.updateTaskParent(realId, realParentId);
+					//TODO: handle response?
+					const [err, response] = await catchError(api.updateTaskParent(realId, realParentId));
+					if (err) {
+						Logger.error("taskParser.index", "Failed to update task parent. Skipping.", t.toString());
+					}
 				}
 			});
 		await Promise.all(updatePromises);
@@ -205,7 +164,11 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 		await Promise.all(diff.toPut.map(async t => {
 			const label = `push-new:Put:${t.name || ''}:${t.id}`;
 			console.time(label);
-			const response = await api.updateTask(t.id, t);
+			//TODO: handle response?
+			const [err, response] = await catchError(api.updateTask(t.id, t));
+			if (err) {
+				Logger.error("taskParser.index", "Failed to update task. Skipping.", t.toString());
+			}
 			console.timeEnd(label);
 		}));
 		console.timeEnd("push-new:Put");
@@ -214,19 +177,22 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 	}
 
 	// ----------------- TO PUT --------------------
-    if (diff.toDelete.length) {
-        console.time("push-new:Delete");
-        await Promise.all(diff.toDelete.map(async t => {
-            const label = `push-new:DeleteOne:${t.name || ''}:${t.id}`;
-            console.time(label);
-            const response = await api.deleteTask(t.id);
-            console.timeEnd(label);
-            local_cache.removeNode(t.id);
-        }));
-        console.timeEnd("push-new:Delete");
-    } else {
-        Logger.log("core", "Nothing to delete in loca.");
-    }
+	if (diff.toDelete.length) {
+		console.time("push-new:Delete");
+		await Promise.all(diff.toDelete.map(async t => {
+			const label = `push-new:DeleteOne:${t.name || ''}:${t.id}`;
+			console.time(label);
+			const [err, response] = await catchError(api.deleteTask(t.id));
+			if (err) {
+				Logger.error("taskParser.index", "Failed to deleteTask. Skipping", t.toString());
+			}
+			console.timeEnd(label);
+			local_cache.removeNode(t.id);
+		}));
+		console.timeEnd("push-new:Delete");
+	} else {
+		Logger.log("core", "Nothing to delete in loca.");
+	}
 
 	// ----------------- TO PUT --------------------
 	//
@@ -256,7 +222,6 @@ testingLexer();
 
 export const TaskParser = {
 	getRemote,
-	getRemoteFull,
 	getColoredDiffMarkdown,
 	setAllTasksColor,
 	processDiffToPost,

@@ -4,8 +4,8 @@ import { _Clickup_Folder, _Clickup_Folders } from "./getFolders.js"
 import { _Clickup_Task, _Clickup_Tasks } from "./getTasks.js"
 import { _Clickup_List } from "./getLists.js"
 
-import { Colors, Color } from "./../utils/colors.js";
-import { TaskCache } from "./../core.js"
+import { Colors, Color } from "../../utils/colors.js";
+import { TaskCache } from "../../core.js"
 
 export type { _Clickup_Teams } from "./getTeams.js"
 export type { _Clickup_Spaces } from "./getSpaces.js"
@@ -58,7 +58,7 @@ export function ClickupFolderToFolder(folder: _Clickup_Folder): Folder {
 		name: folder.name,
 		orderIndex: folder.orderindex,
 		taskCount: folder.task_count,
-		lists: folder.lists.map(ClickupListToList)
+		lists: (folder.lists ?? []).map(ClickupListToList)
 	}
 }
 
