@@ -2,16 +2,11 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 // Remember to rename these classes and interfaces!
-import { Logger } from 'taskParser/utils/logger';
-import { SuggestModal } from "obsidian";
-import { inspect } from "util";
-import { ApiService, GetTasksOptions, CreateTaskOptions } from "./taskParser/ApiService";
+import { ApiService } from "./taskParser/ApiService";
 import { cmdAskAndSetClickupSettings } from 'commands';
-import { askYesNo, YesNoModal } from 'components/YesNoModal';
+import { askYesNo } from 'components/YesNoModal';
 
 import { TaskParser } from 'taskParser';
-import { cacheGenerateDiff, TaskCache } from 'taskParser/core';
-import { Task } from 'taskParser/apiTypes';
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	api: ApiService;
