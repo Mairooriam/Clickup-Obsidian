@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import MyPlugin from "./main";
-import { ClickupResponseSlim_GetTeams, } from "./taskParser/api/types/getTeams"
-import { ClickupResponseSlim_GetSpaces } from "taskParser/api/types";
+import { ClickupResponseSlim_GetTeams, } from "./taskParser/api/clickup/types/getTeams"
+import { ClickupResponseSlim_GetSpaces } from "taskParser/api/clickup/types";
 
 export interface TeamSettings {
 	data: ClickupResponseSlim_GetTeams;

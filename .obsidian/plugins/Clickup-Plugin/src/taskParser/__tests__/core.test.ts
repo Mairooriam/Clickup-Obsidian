@@ -1,13 +1,13 @@
 import { join } from "path";
 import { ApiService } from "../api/ApiService";
-import { _ApiService } from "../api/_ApiService";
+import { ClickupApi } from "../api/clickup/ClickupApi";
 import * as fs from "fs";
 import { TaskCache, tasksResolveParents } from "../core";
 import { Logger } from "../utils/logger";
 
 beforeEach(() => {
 	// @ts-ignore
-	_ApiService.instance = undefined;
+	ClickupApi.instance = undefined;
 });
 beforeAll(() => {
 	Logger.setLevel("api", "none");

@@ -1,11 +1,12 @@
 import { _Clickup_List, _Clickup_Lists } from "./types/getLists";
 import { _Clickup_Tasks } from "./types/getTasks";
-import { Team, Space, Folder, Task, ClickupTaskToTask, List, ClickupListToList } from "./types/index"
-import { _Clickup_Teams, _Clickup_Spaces, _Clickup_Folders } from "./types/index"
+import { ClickupTaskToTask, ClickupListToList } from "./types/index"
 import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from "./types/index"
 import { _Clickup_CreateTask } from "./types/createTask";
-import { _Clickup_Space } from "./types/getSpaces";
-import { _Clickup_Folder } from "./types/getFolders";
+import { _Clickup_Space, _Clickup_Spaces } from "./types/getSpaces";
+import { _Clickup_Folder, _Clickup_Folders } from "./types/getFolders";
+import { Folder, List, Space, Task, Team } from "../types";
+import { _Clickup_Teams } from "./types/getTeams";
 
 //TODO: think of something else?
 function cleanObject<T, K extends keyof T>(obj: T, keys: K[]): Partial<Pick<T, K>> {
@@ -81,8 +82,8 @@ interface FetcherOptions {
 /*
  * MEANT FOR INTERNAL USE OR IF U DONT WANT LOGGING
  * */
-export class _ApiService {
-	private static instance: _ApiService;
+export class ClickupApi {
+	private static instance: ClickupApi;
 	private readonly token: string;
 	private tempID: number;
 	private fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>;
@@ -93,12 +94,12 @@ export class _ApiService {
 		this.fetcherOverride = fetcherOverride;
 	}
 
-	public static getInstance(token?: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>): _ApiService {
-		if (!_ApiService.instance) {
-			if (!token) throw new Error("_ApiService requires a token on first initialization");
-			_ApiService.instance = new _ApiService(token, fetcherOverride);
+	public static getInstance(token?: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>): ClickupApi {
+		if (!ClickupApi.instance) {
+			if (!token) throw new Error("ClickupApi requires a token on first initialization");
+			ClickupApi.instance = new ClickupApi(token, fetcherOverride);
 		}
-		return _ApiService.instance;
+		return ClickupApi.instance;
 	}
 
 	private async fetcher<T>(url: string, options: FetcherOptions = {}): Promise<HttpResponse<T>> {

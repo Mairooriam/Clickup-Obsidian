@@ -1,12 +1,14 @@
-import { _ApiService, GetTasksOptions, CreateTaskOptions } from "./_ApiService";
+import { ClickupApi, GetTasksOptions, CreateTaskOptions } from "./clickup/ClickupApi";
 import { Logger } from "../utils/logger";
+import { Folder, List, Space, Task, Team } from "./types.js";
+import { _Clickup_CreateTask } from "./clickup/types/createTask";
 
 export type { GetTasksOptions, CreateTaskOptions };
 
 export class ApiService {
-	private api: _ApiService;
+	private api: ClickupApi;
 
-	constructor(api: _ApiService) {
+	constructor(api: ClickupApi) {
 		this.api = api;
 	}
 	/**
@@ -15,11 +17,11 @@ export class ApiService {
 	 * @param fetcherOverride Optional fetcher for testing/mocking.
 	 */
 	static getInstance(token: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<any>): ApiService {
-		const api = _ApiService.getInstance(token, fetcherOverride);
+		const api = ClickupApi.getInstance(token, fetcherOverride);
 		return new ApiService(api);
 	}
 
-	async getTasks(listId: number, options?: GetTasksOptions) {
+	async getTasks(listId: number, options?: GetTasksOptions): Promise<Task[]> {
 		try {
 			return await this.api.getTasks(listId, options);
 		} catch (err) {
@@ -28,7 +30,8 @@ export class ApiService {
 		}
 	}
 
-	async createTask(listId: number, task: CreateTaskOptions) {
+	//TODO: add own abstraction of createTask type?
+	async createTask(listId: number, task: CreateTaskOptions): Promise<_Clickup_CreateTask> {
 		try {
 			return await this.api.createTask(listId, task);
 		} catch (err) {
@@ -37,7 +40,7 @@ export class ApiService {
 		}
 	}
 
-	async getTeams() {
+	async getTeams(): Promise<Team[]> {
 		try {
 			return await this.api.getTeams();
 		} catch (err) {
@@ -46,7 +49,7 @@ export class ApiService {
 		}
 	}
 
-	async getSpaces(teamId: string) {
+	async getSpaces(teamId: string): Promise<Space[]> {
 		try {
 			return await this.api.getSpaces(teamId);
 		} catch (err) {
@@ -55,7 +58,7 @@ export class ApiService {
 		}
 	}
 
-	async getSpace(spaceId: string) {
+	async getSpace(spaceId: string): Promise<Space> {
 		try {
 			return await this.api.getSpace(spaceId);
 		} catch (err) {
@@ -64,7 +67,7 @@ export class ApiService {
 		}
 	}
 
-	async getFolders(spaceId: string) {
+	async getFolders(spaceId: string): Promise<Folder[]> {
 		try {
 			return await this.api.getFolders(spaceId);
 		} catch (err) {
@@ -73,7 +76,7 @@ export class ApiService {
 		}
 	}
 
-	async getFolder(folderId: string) {
+	async getFolder(folderId: string): Promise<Folder> {
 		try {
 			return await this.api.getFolder(folderId);
 		} catch (err) {
@@ -82,7 +85,7 @@ export class ApiService {
 		}
 	}
 
-	async getLists(folderId: string) {
+	async getLists(folderId: string): Promise<List[]> {
 		try {
 			return await this.api.getLists(folderId);
 		} catch (err) {
@@ -91,7 +94,7 @@ export class ApiService {
 		}
 	}
 
-	async getList(listId: number) {
+	async getList(listId: number): Promise<List> {
 		try {
 			return await this.api.getList(listId);
 		} catch (err) {

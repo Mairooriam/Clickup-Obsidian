@@ -176,7 +176,7 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 		Logger.log("core", "Nothing to put in local.");
 	}
 
-	// ----------------- TO PUT --------------------
+	// ----------------- TO DELETE --------------------
 	if (diff.toDelete.length) {
 		console.time("push-new:Delete");
 		await Promise.all(diff.toDelete.map(async t => {
@@ -193,10 +193,6 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 	} else {
 		Logger.log("core", "Nothing to delete in loca.");
 	}
-
-	// ----------------- TO PUT --------------------
-	//
-
 
 	return local_cache.toString();
 }
