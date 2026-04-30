@@ -1,26 +1,18 @@
-import { ClickupApi, GetTasksOptions, CreateTaskOptions } from "./clickup/ClickupApi";
+import { GetTasksOptions, CreateTaskOptions } from "./clickup/ClickupApi";
 import { Logger } from "../utils/logger";
 import { Folder, List, Space, Task, Team } from "./types.js";
 import { _Clickup_CreateTask } from "./clickup/types/createTask";
+import { IApi } from "./IApi";
 
 export type { GetTasksOptions, CreateTaskOptions };
 
 export class ApiService {
-	private api: ClickupApi;
+    private api: IApi;
 
-	constructor(api: ClickupApi) {
-		this.api = api;
-	}
-	/**
-	 * Get an ApiService instance using a ClickUp API token.
-	 * @param token The ClickUp API token.
-	 * @param fetcherOverride Optional fetcher for testing/mocking.
-	 */
-	static getInstance(token: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<any>): ApiService {
-		const api = ClickupApi.getInstance(token, fetcherOverride);
-		return new ApiService(api);
-	}
-
+    constructor(api: IApi) {
+        this.api = api;
+    }
+	
 	async getTasks(listId: number, options?: GetTasksOptions): Promise<Task[]> {
 		try {
 			return await this.api.getTasks(listId, options);

@@ -7,6 +7,7 @@ import { _Clickup_Space, _Clickup_Spaces } from "./types/getSpaces";
 import { _Clickup_Folder, _Clickup_Folders } from "./types/getFolders";
 import { Folder, List, Space, Task, Team } from "../types";
 import { _Clickup_Teams } from "./types/getTeams";
+import { IApi } from "../IApi";
 
 //TODO: think of something else?
 function cleanObject<T, K extends keyof T>(obj: T, keys: K[]): Partial<Pick<T, K>> {
@@ -82,7 +83,7 @@ interface FetcherOptions {
 /*
  * MEANT FOR INTERNAL USE OR IF U DONT WANT LOGGING
  * */
-export class ClickupApi {
+export class ClickupApi implements IApi {
 	private static instance: ClickupApi;
 	private readonly token: string;
 	private tempID: number;

@@ -4,6 +4,7 @@ import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
 import { Stack } from "./types.js"
 import { Color } from "./utils/colors.js";
+import { Logger } from "./utils/logger.js";
 
 export function debugPrint(msg: string) {
 	const err = new Error();
@@ -91,19 +92,43 @@ export class TaskCache {
 			tasksResolveParents(tasks);
 		}
 		const tree = new TaskCache();
+		const allIds = new Set(tasks.map(t => t.id));
+    	const dangling: Task[] = [];
+
 		for (const task of tasks) {
 			const id = task.id;
 			if (id) tree.map.set(id, task);
 		}
+
 		for (const task of tasks) {
 			const parentId = task.parent;
 			if (!parentId || parentId === "null") {
 				tree.roots.push(task);
 			} else {
+				if (!allIds.has(parentId)) {
+					dangling.push(task);
+				}
 				if (!tree.children.has(parentId)) tree.children.set(parentId, []);
 				tree.children.get(parentId)!.push(task);
 			}
 		}
+
+		if (tree.roots.length === 0 && tasks.length > 0) {
+			Logger.warn(
+				"core",
+				"API returned tasks but none are roots (all have a parent). This may indicate a data or conversion issue. or sometimes clickup leaves hanging \"ghost\" tasks",
+				{ tasks: tasks.map(t => ({ id: t.id, name: t.name, parent: t.parent })) }
+			);
+		}
+
+		if (dangling.length > 0) {
+			Logger.warn(
+				"core",
+				"Detected dangling tasks: these have a parent that does not exist in the task list.",
+				{ dangling: dangling.map(t => ({ id: t.id, name: t.name, parent: t.parent })) }
+			);
+		}
+
 		recalculateLevels(tree);
 		return tree;
 	}

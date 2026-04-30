@@ -7,13 +7,14 @@ import { checkDiff, cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmd
 import { askYesNo } from 'components/YesNoModal';
 
 import { getRemote, TaskParser } from 'taskParser';
+import { createApi } from 'taskParser/api/apiFactory';
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	api: ApiService;
 	static useColor: boolean = true;
 	async onload() {
 		await this.loadSettings();
-		this.api = ApiService.getInstance(this.settings.apiKey);
+		this.api = new ApiService(createApi("clickup", this.settings.apiKey));
 		// This creates an icon in the left ribbon.
 		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
@@ -53,7 +54,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = TaskParser.ApiService.getInstance(apiKey);
+				this.api = new ApiService(createApi("clickup", this.settings.apiKey));
 
 				cmdGetRemote(this, editor, view);
 
@@ -63,12 +64,11 @@ export default class MyPlugin extends Plugin {
 			id: 'check-diff',
 			name: 'DiffChecker',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const apiKey = this.settings.apiKey;
-				if (!apiKey) {
+				if (!this.settings.apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = TaskParser.ApiService.getInstance(apiKey);
+				this.api = new ApiService(createApi("clickup", this.settings.apiKey));
 				cmdCheckDiff(this, editor, view);
 			}
 		});
@@ -76,12 +76,11 @@ export default class MyPlugin extends Plugin {
 			id: 'test-parse-md',
 			name: 'Clickup Remove color',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const apiKey = this.settings.apiKey;
-				if (!apiKey) {
+				if (!this.settings.apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = TaskParser.ApiService.getInstance(apiKey);
+				tthis.api = new ApiService(createApi("clickup", this.settings.apiKey));
 				cmdRemoveSelectionColor(this, editor, view);
 			}
 		});
@@ -89,12 +88,11 @@ export default class MyPlugin extends Plugin {
 			id: 'set-settings',
 			name: 'Set settings',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const apiKey = this.settings.apiKey;
-				if (!apiKey) {
+				if (!this.settings.apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = ApiService.getInstance(apiKey);
+				this.api = new ApiService(createApi("clickup", this.settings.apiKey));
 				cmdAskAndSetClickupSettings(this, editor, view);
 			}
 		});
@@ -103,12 +101,11 @@ export default class MyPlugin extends Plugin {
 			id: 'push-new',
 			name: 'push new',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const apiKey = this.settings.apiKey;
-				if (!apiKey) {
+				if (!this.settings.apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = ApiService.getInstance(apiKey);
+				this.api = new ApiService(createApi("clickup", this.settings.apiKey));
 
 				let selection = editor.getSelection();
 				const newMd = await TaskParser.processDiffToPost(selection, this.settings.list.selected, this.api);

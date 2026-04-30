@@ -4,6 +4,7 @@ import { ClickupApi } from "../api/clickup/ClickupApi";
 import * as fs from "fs";
 import { TaskCache, tasksResolveParents } from "../core";
 import { Logger } from "../utils/logger";
+import { createApi } from "../api/apiFactory";
 
 beforeEach(() => {
 	// @ts-ignore
@@ -16,7 +17,9 @@ beforeAll(() => {
 const mockResponse = JSON.parse(
 	fs.readFileSync(join(__dirname, "getTasks-response.json"), "utf-8")
 );
-
+function createTestApi(mockFetcher: any) {
+	return ClickupApi.getInstance("FAKE_TOKEN", mockFetcher);
+}
 function mockFetcher<T>(url: string, options?: any) {
 	const result = {
 		json: mockResponse,
@@ -39,7 +42,7 @@ function createMockFetcher(responders: Record<string, (url: string, options?: an
 	};
 }
 test("ApiService.getTasks => taskCache", async () => {
-	const api = ApiService.getInstance("FAKE_TOKEN", mockFetcher);
+	const api = new ApiService(createTestApi(mockFetcher));
 	const tasks = await api.getTasks(12345);
 
 	// Validate the getTasks gets parents correctly
@@ -115,19 +118,19 @@ describe("ApiService endpoints", () => {
 	endpoints.forEach(({ name, call }) => {
 		test(`${name} forwards fetcher errors`, async () => {
 			const mockFetcher = jest.fn().mockRejectedValue(new Error("fail"));
-			const api = ApiService.getInstance("FAKE_TOKEN", mockFetcher);
+			const api = new ApiService(createTestApi(mockFetcher));
 			await expect(call(api)).rejects.toThrow();
 		});
 
 		test(`${name} works on success`, async () => {
 			const mockFetcher = jest.fn().mockResolvedValue(responses[name]);
-			const api = ApiService.getInstance("FAKE_TOKEN", mockFetcher);
+			const api = new ApiService(createTestApi(mockFetcher));
 			await expect(call(api)).resolves.not.toThrow();
 		});
 	});
 });
 test("All ApiService public methods are explicitly tested", () => {
-	const api = ApiService.getInstance("FAKE_TOKEN", jest.fn());
+	const api = new ApiService(createTestApi(jest.fn()));
 	const proto = Object.getPrototypeOf(api);
 
 	// List all public methods you expect to have
