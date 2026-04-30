@@ -2,23 +2,37 @@ import { Task } from "./api/types.js";
 import { generateId } from "./utils/id.js";
 import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
-import { Stack } from "./types.js"
 import { Color } from "./utils/colors.js";
 import { Logger } from "./utils/logger.js";
 
-export function debugPrint(msg: string) {
-	const err = new Error();
-	// Parse stack trace for caller info
-	const stack = err.stack?.split('\n')[2] || '';
-	// Example stack line: "    at myFunction (c:\path\to\file.ts:123:45)"
-	const match = stack.match(/at\s+(.*)\s+\((.*):(\d+):(\d+)\)/);
-	if (match) {
-		const [, func, file, line] = match;
-		console.error(`[${func} ${file}:${line}] ${msg}`);
-	} else {
-		console.error(msg);
+export class Stack<T> {
+	private stack: T[] = []
+
+	top(): T | undefined {
+		return this.stack.length > 0 ? this.stack[this.stack.length - 1] : undefined;
+	}
+
+	size(): number {
+		return this.stack.length;
+	}
+
+	pop(): T | undefined {
+		return this.stack.pop();
+	}
+
+	push(item: T): void {
+		this.stack.push(item);
+	}
+
+	empty(): boolean {
+		return this.stack.length === 0;
+	}
+
+	clear(): void {
+		this.stack = [];
 	}
 }
+
 
 // tells whether two tasks are the same
 export function taskMatch(t1: Task, t2: Task): boolean {
@@ -217,7 +231,7 @@ export class TaskCache {
 	updateNodeId(oldKey: string, newKey: string) {
 		const node = this.map.get(oldKey);
 		if (!node) {
-			debugPrint(`oldKey ${oldKey} is not in the map.`);
+			Logger.log("core", `${oldKey} is not in the map.`);
 		}
 
 		if (!node?.id) {

@@ -1,16 +1,23 @@
-import { GetTasksOptions, CreateTaskOptions } from "./clickup/ClickupApi";
+import { GetTasksOptions, CreateTaskOptions, ClickupApi } from "./clickup/ClickupApi";
+import { _Clickup_CreateTask } from "./clickup/types/createTask";
 import { Logger } from "../utils/logger";
 import { Folder, List, Space, Task, Team } from "./types.js";
-import { _Clickup_CreateTask } from "./clickup/types/createTask";
 import { IApi } from "./IApi";
 
 export type { GetTasksOptions, CreateTaskOptions };
 
+export type SupportedApiType = "clickup";
+
+export function createApi(type: SupportedApiType, token: string): IApi {
+	if (type === "clickup") return ClickupApi.getInstance(token);
+	throw new Error("Unknown API type");
+}
+
 export class ApiService {
     private api: IApi;
 
-    constructor(api: IApi) {
-        this.api = api;
+    constructor(type: SupportedApiType, token: string) {
+        this.api = createApi(type, token);
     }
 	
 	async getTasks(listId: number, options?: GetTasksOptions): Promise<Task[]> {

@@ -2,19 +2,16 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 // Remember to rename these classes and interfaces!
-import { ApiService } from "./taskParser/api/ApiService";
-import { checkDiff, cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor } from 'commands';
-import { askYesNo } from 'components/YesNoModal';
 
-import { getRemote, TaskParser } from 'taskParser';
-import { createApi } from 'taskParser/api/apiFactory';
+import { cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor } from 'commands';
+import { ApiService, TaskParser } from "taskParser";
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	api: ApiService;
 	static useColor: boolean = true;
 	async onload() {
 		await this.loadSettings();
-		this.api = new ApiService(createApi("clickup", this.settings.apiKey));
+		this.api = new ApiService("clickup", this.settings.apiKey);
 		// This creates an icon in the left ribbon.
 		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
@@ -54,7 +51,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService(createApi("clickup", this.settings.apiKey));
+				this.api = new ApiService("clickup", this.settings.apiKey);
 
 				cmdGetRemote(this, editor, view);
 
@@ -68,7 +65,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService(createApi("clickup", this.settings.apiKey));
+				this.api = new ApiService("clickup", this.settings.apiKey);
 				cmdCheckDiff(this, editor, view);
 			}
 		});
@@ -80,7 +77,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				tthis.api = new ApiService(createApi("clickup", this.settings.apiKey));
+				tthis.api = new ApiService("clickup", this.settings.apiKey);
 				cmdRemoveSelectionColor(this, editor, view);
 			}
 		});
@@ -92,7 +89,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService(createApi("clickup", this.settings.apiKey));
+				this.api = new ApiService("clickup", this.settings.apiKey);
 				cmdAskAndSetClickupSettings(this, editor, view);
 			}
 		});
@@ -105,7 +102,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService(createApi("clickup", this.settings.apiKey));
+				this.api = new ApiService("clickup", this.settings.apiKey);
 
 				let selection = editor.getSelection();
 				const newMd = await TaskParser.processDiffToPost(selection, this.settings.list.selected, this.api);

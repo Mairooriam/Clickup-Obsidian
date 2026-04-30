@@ -1,14 +1,9 @@
 
-import { Parser } from "./parser.js"
-
 import { cacheGenerateDiff, TaskCache } from "./core.js"
 import { ApiService, GetTasksOptions, CreateTaskOptions } from "./api/ApiService.js";
-import { Lexer } from "./lexer.js"
 import { Logger } from "./utils/logger.js";
 import { Color, Colors } from "./utils/colors.js";
-import { inspect } from "util";
 import { catchError } from "./utils/error.js"
-import { Task } from "./api/types.js";
 
 /**
  * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
@@ -21,17 +16,18 @@ import { Task } from "./api/types.js";
  * If the request fails, an empty string is returned and an error is logged.
  */
 export async function getRemote(listId: number, api: ApiService): Promise<string> {
-	console.log("calling with listid:", listId);
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
 	const [err, tasks] = await catchError(api.getTasks(listId, options));
 	if (err) {
 		return "";
 	}
-	console.log(tasks);
-	console.log(tasks[0] instanceof Task); // Should be true
-	console.log(tasks[0].constructor.name); // Should be "Task"
-	console.log(typeof tasks[0].toString); // Should be "function"
+
+	if (!tasks.length) {
+		Logger.warn("core", "No tasks on remote.");
+		return "";
+	}
+
 	Logger.log("taskParser.index", "Tasks:", tasks);
 	let local = TaskCache.fromApi(tasks);
 	Logger.log("taskParser.index", "Local cache", local)
@@ -196,11 +192,13 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 		}));
 		console.timeEnd("push-new:Delete");
 	} else {
-		Logger.log("core", "Nothing to delete in loca.");
+		Logger.log("core", "Nothing to delete in local.");
 	}
 
 	return local_cache.toString();
 }
+
+export { ApiService } from "./api/ApiService.js";
 
 export const TaskParser = {
 	getRemote,
