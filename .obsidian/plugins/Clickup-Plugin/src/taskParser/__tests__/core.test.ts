@@ -4,8 +4,10 @@ import { ClickupApi } from "../api/clickup/ClickupApi";
 import * as fs from "fs";
 import { TaskCache, tasksResolveParents } from "../core";
 import { Logger } from "../utils/logger";
-import { createApi } from "../api/apiFactory";
+import { ClickupTaskToTask } from "../api/clickup/types/index";
+import { Task } from "../api/types";
 
+Logger.setLevel("parser", "warn");
 beforeEach(() => {
 	// @ts-ignore
 	ClickupApi.instance = undefined;
@@ -42,7 +44,11 @@ function createMockFetcher(responders: Record<string, (url: string, options?: an
 	};
 }
 test("ApiService.getTasks => taskCache", async () => {
-	const api = new ApiService(createTestApi(mockFetcher));
+	// Properly reset the singleton before injecting the mock fetcher
+	// @ts-ignore
+	ClickupApi.instance = undefined;
+	ClickupApi.getInstance("FAKE_TOKEN", mockFetcher);
+	const api = new ApiService("clickup", "FAKE_TOKEN");
 	const tasks = await api.getTasks(12345);
 
 	// Validate the getTasks gets parents correctly
@@ -118,19 +124,22 @@ describe("ApiService endpoints", () => {
 	endpoints.forEach(({ name, call }) => {
 		test(`${name} forwards fetcher errors`, async () => {
 			const mockFetcher = jest.fn().mockRejectedValue(new Error("fail"));
-			const api = new ApiService(createTestApi(mockFetcher));
+			ClickupApi.getInstance("FAKE_TOKEN", mockFetcher);
+			const api = new ApiService("clickup", "FAKE_TOKEN");
 			await expect(call(api)).rejects.toThrow();
 		});
 
 		test(`${name} works on success`, async () => {
 			const mockFetcher = jest.fn().mockResolvedValue(responses[name]);
-			const api = new ApiService(createTestApi(mockFetcher));
+			ClickupApi.getInstance("FAKE_TOKEN", mockFetcher);
+			const api = new ApiService("clickup", "FAKE_TOKEN");
 			await expect(call(api)).resolves.not.toThrow();
 		});
 	});
 });
 test("All ApiService public methods are explicitly tested", () => {
-	const api = new ApiService(createTestApi(jest.fn()));
+	ClickupApi.getInstance("FAKE_TOKEN", jest.fn());
+	const api = new ApiService("clickup", "FAKE_TOKEN");
 	const proto = Object.getPrototypeOf(api);
 
 	// List all public methods you expect to have
@@ -165,3 +174,27 @@ test("All ApiService public methods are explicitly tested", () => {
 	expect(missing).toEqual([]);
 	expect(extra).toEqual([]);
 });
+it('Test that completed status gets applied correclty', () => {
+	const response = require('./getTasks-response.json');
+	let tasks: Task[] = [];
+	tasks = response.tasks.map(ClickupTaskToTask);
+	expect(tasks[0]?.completed).toBe(false);
+});
+
+
+it('task cache simple task parse', () => {
+	let input = '- [x] Task 1 [id:abc123]';
+	let cache = TaskCache.fromMarkdown(input);
+
+	cache.map.forEach(t => {
+		expect(t.completed).toBe(true);
+	})
+
+	input = '- [ ] Task 1 [id:abc123]';
+	cache = TaskCache.fromMarkdown(input);
+
+	cache.map.forEach(t => {
+		expect(t.completed).toBe(false);
+	})
+});
+

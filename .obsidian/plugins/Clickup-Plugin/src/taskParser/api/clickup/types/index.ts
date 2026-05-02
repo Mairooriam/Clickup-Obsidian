@@ -45,7 +45,8 @@ export function ClickupListToList(list: _Clickup_List): List {
 }
 
 export function ClickupTaskToTask(task: _Clickup_Task): Task {
-	const t = new Task(task.id, 0, task.name, Colors.default, false);
+	//TODO: get completed from the tasks status
+	const t = new Task(task.id, 0, task.name, Colors.default, false, false);
 	t.parent = task.parent ?? undefined;
 	t.top_level_parent = task.top_level_parent ?? undefined;
 	return t;

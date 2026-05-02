@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings
 import { EditorView, ViewUpdate } from "@codemirror/view";
 // Remember to rename these classes and interfaces!
 
-import { cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor } from 'commands';
+import { cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor, cmdTokenize } from 'commands';
 import { ApiService, TaskParser } from "taskParser";
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -57,6 +57,15 @@ export default class MyPlugin extends Plugin {
 
 			}
 		});
+
+		this.addCommand({
+			id: 'tokenize',
+			name: 'tokenize selection',
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				cmdTokenize(this, editor, view);
+			}
+		});
+
 		this.addCommand({
 			id: 'check-diff',
 			name: 'DiffChecker',
@@ -77,7 +86,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				tthis.api = new ApiService("clickup", this.settings.apiKey);
+				this.api = new ApiService("clickup", this.settings.apiKey);
 				cmdRemoveSelectionColor(this, editor, view);
 			}
 		});

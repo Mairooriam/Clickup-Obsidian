@@ -1,4 +1,5 @@
 import { Task } from "./api/types.js";
+import { TaskSchema } from "./api/types.js";
 import { generateId } from "./utils/id.js";
 import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
@@ -102,12 +103,21 @@ export class TaskCache {
 	 * @returns TaskCache instance representing the task tree.
 	 */
 	private static fromTasks(tasks: Task[], resolveParents = true): TaskCache {
+		//TODO: add validation on calls in public layer for this
+		tasks.forEach((task, idx) => {
+			try {
+				TaskSchema.parse(task);
+			} catch (e) {
+				const errMsg = e instanceof Error ? e.message : String(e);
+				throw new Error(`Task validation failed at index ${idx} (id: ${task.id ?? 'unknown'}): ${errMsg}`);
+			}
+		});
 		if (resolveParents) {
 			tasksResolveParents(tasks);
 		}
 		const tree = new TaskCache();
 		const allIds = new Set(tasks.map(t => t.id));
-    	const dangling: Task[] = [];
+		const dangling: Task[] = [];
 
 		for (const task of tasks) {
 			const id = task.id;
@@ -300,6 +310,14 @@ export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMat
 			}
 			return;
 		}
+
+		if (localTask.completed) {
+			if (!remoteTask?.completed) {
+				result.match = false;
+				result.toPut.push(localTask);
+			}
+		}
+
 		if (!remoteTask) {
 			// Exists locally but not remotely → POST
 			result.match = false;

@@ -41,6 +41,12 @@ type LoggerConfig = {
 	[K in LoggerKey]?: LogLevel;
 };
 
+
+let printStackTraces = false;
+export function setPrintStackTraces(val: boolean) {
+	printStackTraces = val;
+}
+
 const defaultLevel: LogLevel = "log";
 
 const logLevels: Record<LogLevel, number> = {
@@ -74,21 +80,34 @@ export namespace Logger {
 		return logLevels[level] <= logLevels[keyLevel];
 	}
 
+
 	export function log(key: LoggerKey, message: string, ...args: unknown[]): void {
 		if (!shouldLog(key, "log")) return;
-		const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
-		console.log(`[${key.toUpperCase()}][LOG] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+		if (printStackTraces) {
+			const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
+			console.log(`[${key.toUpperCase()}][LOG] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+		} else {
+			console.log(`[${key.toUpperCase()}][LOG] ${message} ${snapshotArgs(args)}`);
+		}
 	}
 
 	export function warn(key: LoggerKey, message: string, ...args: unknown[]): void {
 		if (!shouldLog(key, "warn")) return;
-		const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
-		console.warn(`[${key.toUpperCase()}][WARN] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+		if (printStackTraces) {
+			const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
+			console.warn(`[${key.toUpperCase()}][WARN] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+		} else {
+			console.warn(`[${key.toUpperCase()}][WARN] ${message} ${snapshotArgs(args)}`);
+		}
 	}
 
 	export function error(key: LoggerKey, message: string, ...args: unknown[]): void {
 		if (!shouldLog(key, "error")) return;
-		const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
-		console.error(`[${key.toUpperCase()}][ERROR] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+		if (printStackTraces) {
+			const stack = new Error().stack?.split("\n")[2]?.trim() ?? "unknown";
+			console.error(`[${key.toUpperCase()}][ERROR] ${message} ${snapshotArgs(args)}\n  called from: ${stack}`);
+		} else {
+			console.error(`[${key.toUpperCase()}][ERROR] ${message} ${snapshotArgs(args)}`);
+		}
 	}
 }

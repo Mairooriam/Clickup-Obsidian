@@ -4,6 +4,9 @@ import { ApiService, GetTasksOptions, CreateTaskOptions } from "./api/ApiService
 import { Logger } from "./utils/logger.js";
 import { Color, Colors } from "./utils/colors.js";
 import { catchError } from "./utils/error.js"
+import { Lexer } from "./lexer.js";
+import { Parser } from "./parser.js";
+import { parse } from "path";
 
 /**
  * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
@@ -18,6 +21,7 @@ import { catchError } from "./utils/error.js"
 export async function getRemote(listId: number, api: ApiService): Promise<string> {
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
+	console.log(listId);
 	const [err, tasks] = await catchError(api.getTasks(listId, options));
 	if (err) {
 		return "";
@@ -53,22 +57,40 @@ export async function getRemote(listId: number, api: ApiService): Promise<string
  */
 async function getColoredDiffMarkdown(localMd: string, remoteId: number, api: ApiService): Promise<string> {
 	const cache = TaskCache.fromMarkdown(localMd);
+	if (!cache) {
+		Logger.warn("taskParser.index", "created empty cache.");
+		return "";
+	}
+	console.log("local cache", cache);
 
 	let options: GetTasksOptions = {};
 	options.subtasks = true;
 	const [err, remote_tasks] = await catchError(api.getTasks(remoteId, options));
 	if (err) {
+		Logger.warn("taskParser.index", "Didn't get any tasks from remote. retunring emppty.");
 		return "";
 	}
 
+
 	let cacheRemote = TaskCache.fromApi(remote_tasks);
+
 	let diff = cacheGenerateDiff(cache, cacheRemote);
+	if (!diff.toDelete.length) {
+		Logger.log("taskParser.index", "No tasks to color to delete (RED)");
+	}
+	if (!diff.toPost.length) {
+		Logger.log("taskParser.index", "No tasks to color to post (GREEN)");
+	}
+	if (!diff.toPut.length) {
+		Logger.log("taskParser.index", "No Tasks to color to put (BLUE)");
+	}
 	cache.setColorForAll(Colors.White);
 
 	diff.toPost.forEach(task => cache.setColorForSubtree(task.id, Colors.Green));
 	diff.toPut.forEach(task => cache.setColorForSubtree(task.id, Colors.Blue));
 	diff.toDelete.forEach(task => cache.setColorForSubtree(task.id, Colors.Red));
 
+	Logger.log("taskParser.index", "diff:", diff);
 	return cache.toString();
 }
 
@@ -208,4 +230,21 @@ export const TaskParser = {
 	ApiService,
 	TaskCache,
 	Colors,
+};
+
+
+function tokenizeAndLog(md: string) {
+	console.log(md);
+	const lexer = new Lexer(md);
+	const tokens = lexer.tokenize();
+	console.log(tokens);
+	const parser = new Parser(tokens);
+	const tasks = parser.parseTasks();
+	console.log(tasks);
+}
+
+
+
+export const TaskParserDev = {
+	tokenizeAndLog
 };

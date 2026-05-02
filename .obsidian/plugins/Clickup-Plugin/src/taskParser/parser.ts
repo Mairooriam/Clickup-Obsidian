@@ -6,8 +6,8 @@ import { generateId } from "./utils/id.js";
 import { Color, Colors, toColor } from "./utils/colors.js";
 import { Logger } from "./utils/logger.js";
 
-function taskFromToken(id: string, level: number, name: string, color: Color, striketrough: boolean, flags?: Record<string, any>): Task {
-	const task = new Task(id, level, name, color, striketrough);
+function taskFromToken(id: string, level: number, name: string, color: Color, striketrough: boolean, completed: boolean, flags?: Record<string, any>): Task {
+	const task = new Task(id, level, name, color, striketrough, completed);
 	if (flags) Object.assign(task, flags);
 	return task;
 }
@@ -46,22 +46,27 @@ export class Parser {
 		let color: Color = Colors.default;
 		let htmlOpen = false;
 		while (!this.isToken(TokenType.EOF)) {
-			if (
-				this.isToken(TokenType.HTML_OPEN) &&
-				this.currentToken.flags &&
-				typeof this.currentToken.flags.style === "string"
-			) {
-				const style = this.currentToken.flags.style;
-				const match = style.match(/color\s*:\s*([^;]+)/i);
-				if (match) {
-					color = toColor(match[1]!.trim()) ?? Colors.default;
-					htmlOpen = true;
+			if (this.isToken(TokenType.HTML_OPEN)) {
+				if (this.currentToken.flags && typeof this.currentToken.flags.style === "string") {
+					Logger.log("parser", `HTML_OPEN with style: ${this.currentToken.flags.style}`);
+					const style = this.currentToken.flags.style;
+					const match = style.match(/color\s*:\s*([^;]+)/i);
+					if (match) {
+						color = toColor(match[1]!.trim()) ?? Colors.default;
+						htmlOpen = true;
+						Logger.log("parser", `Set color: ${color}, htmlOpen: true`);
+					} else {
+						Logger.warn("parser", "HTML_OPEN token with style flag but no color found", this.currentToken);
+					}
+				} else {
+					Logger.warn("parser", "HTML_OPEN token without flags or style", this.currentToken);
 				}
 				this.next();
 				continue;
 			}
 
 			if (this.isToken(TokenType.HTML_CLOSE)) {
+				Logger.log("parser", "HTML_CLOSE, resetting color and htmlOpen");
 				color = Colors.default;
 				htmlOpen = false;
 				this.next();
@@ -69,6 +74,7 @@ export class Parser {
 			}
 
 			if (this.isToken(TokenType.NEWLINE)) {
+				Logger.log("parser", "NEWLINE token");
 				if (htmlOpen) {
 					Logger.warn("parser", "Malformed input: span not closed before newline", this);
 					color = Colors.default;
@@ -80,55 +86,66 @@ export class Parser {
 
 			let indent = 0;
 			if (this.isToken(TokenType.INDENT)) {
+				Logger.log("parser", `INDENT token, value: ${this.currentToken.value}`);
 				indent = Number(this.currentToken.value);
 				this.next();
 			}
 
 			if (!this.isToken(TokenType.DASH)) {
+				Logger.log("parser", `Not a DASH token, skipping to next line`);
 				this.skipToNextLine();
 				continue;
 			}
 
+			Logger.log("parser", `DASH token`);
 			this.next();
 
-			if (this.isToken(TokenType.CHECKBOX_COMPLETED, TokenType.CHECKBOX_EMPTY)) {
+			let completed = false;
+			if (this.isToken(TokenType.CHECKBOX_COMPLETED)) {
+				Logger.log("parser", `CHECKBOX_COMPLETED token`);
+				this.next();
+				completed = true;
+			} else if (this.isToken(TokenType.CHECKBOX_EMPTY)) {
+				Logger.log("parser", `CHECKBOX_EMPTY token`);
 				this.next();
 			}
 
 			let striketrough = 0;
 			if (this.isToken(TokenType.STRIKETROUGH)) {
+				Logger.log("parser", `STRIKETROUGH token (before text)`);
 				this.next();
 				striketrough++;
 			}
-
 
 			let taskToken: Token;
 			if (!this.isToken(TokenType.TEXT)) {
+				Logger.log("parser", `Not a TEXT token, skipping to next line`);
 				this.skipToNextLine();
 				continue;
 			} else {
+				Logger.log("parser", `TEXT token, value: ${this.currentToken.value}`);
 				taskToken = this.current();
-				this.next()
+				this.next();
 			}
 
 			if (this.isToken(TokenType.STRIKETROUGH)) {
+				Logger.log("parser", `STRIKETROUGH token (after text)`);
 				this.next();
 				striketrough++;
 			}
 
-
+			Logger.log("parser", `Creating task: name=${taskToken.value}, color=${color}, completed=${completed}, striketrough=${striketrough > 1}, indent=${indent}`);
 			const task = taskFromToken(
 				generateId("placeholder"),
 				indent,
 				taskToken.value,
 				color,
 				striketrough > 1,
+				completed,
 				taskToken.flags
-
 			);
-			this.next();
 
-
+			Logger.log("parser", `Task pushed: ${taskToken.value}`);
 			allTasks.push(task);
 		}
 		return allTasks;
@@ -138,113 +155,4 @@ export class Parser {
 		return this.parseTaskList();
 	}
 
-	/**
-	 * Parses the full structure: Team > Space > Folder > List > Tasks
-	 * Expects tokens in the order:
-	 *   Heading (level 2+) + FLAG (team/space/folder) + Text (name + id flag)
-	 */
-	parseFull(): Team[] {
-		const teams: Team[] = [];
-		let currentTeam: Team | null = null;
-		let currentSpace: Space | null = null;
-		let currentFolder: Folder | null = null;
-		let currentList: List | null = null;
-
-		while (!this.isToken(TokenType.EOF)) {
-			// Parse Team Heading
-			if (this.isToken(TokenType.HEADING) && this.current().value === "2") {
-				this.next();
-				if (this.isToken(TokenType.FLAG) && this.current().value === "teams") {
-					this.next();
-					if (this.isToken(TokenType.TEXT)) {
-						const name = this.currentToken.value;
-						const id = this.currentToken.flags?.id ?? generateId("team");
-						currentTeam = { id, name, spaces: [] };
-						teams.push(currentTeam);
-						this.next();
-						continue;
-					}
-				}
-			}
-
-			// Parse Space Heading
-			if (this.isToken(TokenType.HEADING) && this.current().value === "3") {
-				this.next();
-				if (this.isToken(TokenType.FLAG) && this.current().value === "spaces") {
-					this.next();
-					if (this.isToken(TokenType.TEXT)) {
-						const name = this.currentToken.value;
-						const id = this.currentToken.flags?.id ?? generateId("space");
-						currentSpace = { id, name, folders: [] };
-						if (currentTeam) currentTeam.spaces.push(currentSpace);
-						this.next();
-						continue;
-					}
-				}
-			}
-
-			// Parse Folder Heading
-			if (this.isToken(TokenType.HEADING) && this.current().value === "4") {
-				this.next();
-				if (this.isToken(TokenType.FLAG) && this.current().value === "folders") {
-					this.next();
-					if (this.isToken(TokenType.TEXT)) {
-						const name = this.currentToken.value;
-						const id = this.currentToken.flags?.id ?? generateId("folder");
-						currentFolder = {
-							id,
-							name,
-							orderIndex: 0,
-							taskCount: "0",
-							lists: []
-						};
-						if (currentSpace) currentSpace.folders.push(currentFolder);
-						this.next();
-						continue;
-					}
-				}
-			}
-
-			// Parse List Heading (optional, if you want to support lists)
-			if (this.isToken(TokenType.HEADING) && this.current().value === "5") {
-				this.next();
-				if (this.isToken(TokenType.FLAG) && this.current().value === "lists") {
-					this.next();
-					if (this.isToken(TokenType.TEXT)) {
-						const name = this.currentToken.value;
-						const id = this.currentToken.flags?.id ?? generateId("list");
-						currentList = {
-							id: Number(id),
-							name,
-							orderIndex: 0,
-							tasks: []
-						};
-						if (currentFolder) currentFolder.lists.push(currentList);
-						this.next();
-						continue;
-					}
-				}
-			}
-
-			// Parse Tasks under current List or Folder
-			if (this.isToken(TokenType.DASH)) {
-				const tasks = this.parseTaskList();
-
-				if (!currentTeam || !currentSpace) {
-					Logger.error("parser", "Task found, but no team or space context. Tasks must be inside a team > space > folder > list.");
-				} else if (!currentFolder) {
-					Logger.error("parser", "Task found, but no folder context. Tasks must be inside a folder > list.");
-				} else if (!currentList) {
-					Logger.error("parser", "Task found, but no list context. Tasks must be inside a list.");
-				} else {
-					currentList.tasks.push(...tasks);
-				}
-				continue;
-			}
-
-			this.next();
-		}
-
-		return teams;
-	}
 }

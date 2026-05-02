@@ -3,7 +3,7 @@ import { GenericSuggestModal } from "./components/suggestModal";
 import type { Team, Space, Folder, List } from "taskParser/api/clickup/types";
 import MyPlugin from "main";
 import { askYesNo } from "components/YesNoModal";
-import { TaskParser } from "taskParser";
+import { TaskParser, TaskParserDev } from "taskParser";
 
 async function selectFromModal<T>(
 	app: App,
@@ -92,6 +92,9 @@ export async function cmdCheckDiff(plugin: MyPlugin, editor: Editor, view: Markd
 	const localMd = editor.getSelection();
 	const remoteId = plugin.settings.list.selected;
 	const coloredCache = await TaskParser.getColoredDiffMarkdown(localMd, remoteId, plugin.api);
+	if (!coloredCache) {
+		return;
+	}
 	editor.replaceSelection(coloredCache);
 }
 
@@ -111,6 +114,11 @@ export async function cmdGetRemote(plugin: MyPlugin, editor: Editor, view: Markd
 	// Gets tasks from clickup
 	const md = await TaskParser.getRemote(plugin.settings.list.selected, plugin.api);
 	editor.replaceSelection(md);
+}
+
+export function cmdTokenize(plugin: MyPlugin, editor: Editor, view: MarkdownView) {
+	const selection = editor.getSelection();
+	TaskParserDev.tokenizeAndLog(selection);
 }
 
 export async function cmdRemoveSelectionColor(plugin: MyPlugin, editor: Editor, view: MarkdownView) {

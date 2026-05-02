@@ -1,7 +1,11 @@
-import { Lexer } from '../lexer';
+import { ClickupTaskToTask } from '../api/clickup/types/index'; import { TaskCache } from '../core';
+import { Lexer, TokenType } from '../lexer';
 import { Parser } from "../parser"
 import { Logger } from "../utils/logger";
+
+Logger.setLevel("parser", "warn");
 describe('Parser', () => {
+
 	it('parses a simple task', () => {
 		const lexer = new Lexer('- Task 1 [id:abc123]');
 		const tokens = lexer.tokenize();
@@ -40,71 +44,67 @@ describe('Parser', () => {
 
 	});
 
-	//TODO: rmove these probably
-	it('fails when there is no list for tasks', () => {
-		const input = `
-## [teams] TEAM [id:teamId]
-### [spaces] SPACE [id:spaceId]
-#### [folders] FOLDER [id:FolderId]
-- Task without list
-`;
-		const lexer = new Lexer(input);
-		const tokens = lexer.tokenize();
-		const parser = new Parser(tokens);
+	it('parses a simple task with checkbox', () => {
+		let lexer = new Lexer('- [ ] Task 1 [id:abc123]');
+		let tokens = lexer.tokenize();
+		let parser = new Parser(tokens);
+		let tasks = parser.parseTasks();
 
-		// Spy directly on Logger.error
-		const errorSpy = jest.spyOn(Logger, 'error').mockImplementation(() => { });
+		expect(tasks.length).toBe(1);
+		expect(tasks[0]!.name).toBe('Task 1');
+		expect(tasks[0]!.completed).toBe(false)
+		expect(tasks[0]!.id).toBe('abc123');
 
-		parser.parseFull();
+		lexer = new Lexer(' - [ ] Task 2 [id:abc123]');
+		tokens = lexer.tokenize();
+		parser = new Parser(tokens);
+		tasks = parser.parseTasks();
 
-		expect(errorSpy).toHaveBeenCalledWith(
-			"parser",
-			expect.stringContaining("Task found, but no list context. Tasks must be inside a list."),
-		);
+		expect(tasks.length).toBe(1);
+		expect(tasks[0]!.name).toBe('Task 2');
+		expect(tasks[0]!.completed).toBe(false)
+		expect(tasks[0]!.id).toBe('abc123');
 
-		errorSpy.mockRestore();
+
+		lexer = new Lexer('- [x] Task 3 [id:abc123]');
+		tokens = lexer.tokenize();
+		parser = new Parser(tokens);
+		tasks = parser.parseTasks();
+
+		expect(tasks.length).toBe(1);
+		expect(tasks[0]!.name).toBe('Task 3');
+		expect(tasks[0]!.completed).toBe(true);
+		expect(tasks[0]!.id).toBe('abc123');
+
+		lexer = new Lexer('   \t- [x] Task 3 [id:abc123]');
+		tokens = lexer.tokenize();
+		parser = new Parser(tokens);
+		tasks = parser.parseTasks();
+
+		expect(tasks.length).toBe(1);
+		expect(tasks[0]!.name).toBe('Task 3');
+		expect(tasks[0]!.completed).toBe(true);
+		expect(tasks[0]!.id).toBe('abc123');
+
 	});
 
-	it('fails when there is no folder for tasks', () => {
-		const input = `
-## [teams] TEAM [id:teamId]
-### [spaces] SPACE [id:spaceId]
-- Task without folder
-`;
-		const lexer = new Lexer(input);
-		const tokens = lexer.tokenize();
+	it('parses html line', () => {
+		// Logger.setLevel("parser", "log");
+
+		const tokens = [
+			{ type: TokenType.HTML_OPEN, value: 'span', row: 0, col: 47, flags: { style: "color:#0000ff;" } },
+			{ type: TokenType.DASH, value: '-', row: 0, col: 51 },
+			{ type: TokenType.CHECKBOX_COMPLETED, value: 'true', row: 0, col: 51 },
+			{ type: TokenType.TEXT, value: 'test 1', row: 0, col: 79 },
+			{ type: TokenType.HTML_CLOSE, value: 'span', row: 0, col: 86 },
+			{ type: TokenType.NEWLINE, value: '\n', row: 1, col: 0 }
+		];
 		const parser = new Parser(tokens);
+		const tasks = parser.parseTasks();
+		expect(tasks.length).toBe(1);
+		expect(tasks[0]!.name).toBe('test 1');
+		expect(tasks[0]!.completed).toBe(true);
 
-		const errorSpy = jest.spyOn(Logger, 'error').mockImplementation(() => { });
-
-		parser.parseFull();
-
-		expect(errorSpy).toHaveBeenCalledWith(
-			"parser",
-			expect.stringContaining("Task found, but no folder context. Tasks must be inside a folder > list."),
-		);
-
-		errorSpy.mockRestore();
+		// Logger.setLevel("parser", "warn");
 	});
-
-	it('fails when there is no team or space for tasks', () => {
-		const input = `
-- Task without team or space
-`;
-		const lexer = new Lexer(input);
-		const tokens = lexer.tokenize();
-		const parser = new Parser(tokens);
-
-		const errorSpy = jest.spyOn(Logger, 'error').mockImplementation(() => { });
-
-		parser.parseFull();
-
-		expect(errorSpy).toHaveBeenCalledWith(
-			"parser",
-			expect.stringContaining("Task found, but no team or space context. Tasks must be inside a team > space > folder > list."),
-		);
-
-		errorSpy.mockRestore();
-	});
-
 });

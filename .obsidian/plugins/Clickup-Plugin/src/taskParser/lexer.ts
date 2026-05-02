@@ -91,15 +91,6 @@ export class Lexer {
 		return text.trim();
 	}
 
-	private parseClosure(closure: Char): string {
-		let result = "";
-		while (!this.isAtEnd() && !this.is(closure)) {
-			result += this.current();
-			this.advance();
-		}
-		return result;
-	}
-
 	parseTextWithFlags(text: string): { text: string; flags: Record<string, string> } {
 		const flags: Record<string, string> = {};
 		let cleanText = '';
@@ -150,6 +141,7 @@ export class Lexer {
 			switch (current) {
 				case '\n':
 					this.advance();
+					this.skipWhitespace();
 					return { type: TokenType.NEWLINE, value: '\n', row: this.row, col: this.col };
 				case '\t': {
 					const indent = this.countChar(['\t']);
@@ -159,9 +151,9 @@ export class Lexer {
 					this.advance();
 					continue;
 				}
-				case ' ':
-					this.advance();
-					return { type: TokenType.SPACE, value: ' ', row: this.row, col: this.col };
+				   case ' ':
+					   this.skipWhitespace();
+					   continue;
 				case '-':
 					if (this.peek() === ' ') {
 						this.advance();
