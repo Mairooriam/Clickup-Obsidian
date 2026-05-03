@@ -220,7 +220,8 @@ export class Lexer {
 						}
 						this.advance(); // skip >
 						const tagName = tag.split(' ')[0] ?? '';
-						const attrPattern = /(\w[\w-]*)="([^"]*)"/g;
+						// Support spaces around = and multiple attributes
+						const attrPattern = /(\w[\w-]*)\s*=\s*"([^"]*)"/g;
 						const flags: Record<string, string> = {};
 						let match;
 						while ((match = attrPattern.exec(tag)) !== null) {

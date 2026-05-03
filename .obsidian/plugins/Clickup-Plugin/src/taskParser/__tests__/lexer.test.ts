@@ -65,10 +65,11 @@ describe('Lexer', () => {
 
 
 	it(`tokenizes html span`, () => {
-		const input = '<span style = "color:#0000ff;white-space:pre" >  - [x] test 1 [id: 86c9km9ax]  </span>';
+		const input = '<span style = "color:#0000ff;white-space:pre" >  - [x] test 1 [id: 86c9km9ax]  </span>\n';
 		const lexer = new Lexer(input);
 		const tokens = lexer.tokenize();
 
+		console.log(tokens);
 		expect(tokens[0]).toMatchObject({
 			type: 'HTML Open',
 			value: 'span',
