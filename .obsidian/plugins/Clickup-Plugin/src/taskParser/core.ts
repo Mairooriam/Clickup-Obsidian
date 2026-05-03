@@ -310,12 +310,9 @@ export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMat
 			}
 			return;
 		}
-
-		if (localTask.completed) {
-			if (!remoteTask?.completed) {
-				result.match = false;
-				result.toPut.push(localTask);
-			}
+		if (remoteTask && localTask.completed !== remoteTask.completed) {
+			result.match = false;
+			result.toPut.push(localTask);
 		}
 
 		if (!remoteTask) {
