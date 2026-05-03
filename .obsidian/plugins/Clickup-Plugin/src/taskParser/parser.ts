@@ -1,6 +1,6 @@
 import type { Token } from "./lexer.js"
 import { TokenType } from "./lexer.js"
-import { Folder, List, Space, Task, Team } from "./api/types.js"
+import { Task } from "./api/types.js"
 import { generateId } from "./utils/id.js";
 
 import { Color, Colors, toColor } from "./utils/colors.js";

@@ -1,13 +1,11 @@
 
 import { cacheGenerateDiff, TaskCache } from "./core.js"
-import { ApiService, GetTasksOptions, CreateTaskOptions } from "./api/ApiService.js";
+import { ApiService, CreateTaskOptions } from "./api/ApiService.js";
 import { Logger } from "./utils/logger.js";
 import { Color, Colors } from "./utils/colors.js";
 import { catchError } from "./utils/error.js"
 import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
-import { parse } from "path";
-import { map } from "zod";
 
 /**
  * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
@@ -230,8 +228,6 @@ export { ApiService } from "./api/ApiService.js";
  */
 export type { StatusMapping } from "./api/types.js";
 
-
-
 export const TaskParser = {
 	getRemote,
 	getColoredDiffMarkdown,
@@ -242,7 +238,6 @@ export const TaskParser = {
 	Colors,
 };
 
-
 function tokenizeAndLog(md: string) {
 	console.log(md);
 	const lexer = new Lexer(md);
@@ -252,8 +247,6 @@ function tokenizeAndLog(md: string) {
 	const tasks = parser.parseTasks();
 	console.log(tasks);
 }
-
-
 
 export const TaskParserDev = {
 	tokenizeAndLog
