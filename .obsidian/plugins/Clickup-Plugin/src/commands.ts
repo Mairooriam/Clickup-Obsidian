@@ -1,6 +1,6 @@
 import { App, Editor, MarkdownView, Notice, View } from "obsidian";
 import { GenericSuggestModal } from "./components/suggestModal";
-import type { Team, Space, Folder, List } from "taskParser/api/clickup/types";
+import type { Team, Space, Folder, List } from "./taskParser/api/types";
 import MyPlugin from "main";
 import { askYesNo } from "components/YesNoModal";
 import { TaskParser, TaskParserDev } from "taskParser";

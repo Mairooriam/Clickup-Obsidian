@@ -1,73 +1,13 @@
 import { _Clickup_List, _Clickup_Lists } from "./types/getLists";
 import { _Clickup_Tasks } from "./types/getTasks";
-import { ClickupTaskToTask, ClickupListToList } from "./types/index"
+import { ClickupTaskToTask, ClickupListToList, GetTasksOptions, CreateTaskOptions } from "./types/index"
 import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from "./types/index"
 import { _Clickup_CreateTask } from "./types/createTask";
 import { _Clickup_Space, _Clickup_Spaces } from "./types/getSpaces";
 import { _Clickup_Folder, _Clickup_Folders } from "./types/getFolders";
-import { Folder, List, Space, Task, Team } from "../types";
+import { Folder, List, Space, Task, Team, TaskSchema, StatusMapping } from "../types";
 import { _Clickup_Teams } from "./types/getTeams";
 import { IApi } from "../IApi";
-
-//TODO: think of something else?
-function cleanObject<T, K extends keyof T>(obj: T, keys: K[]): Partial<Pick<T, K>> {
-	const result: Partial<Pick<T, K>> = {};
-	for (const key of keys) {
-		const value = obj[key];
-		if (value !== undefined && value !== null) {
-			result[key] = value;
-		}
-	}
-	return result;
-}
-
-export interface GetTasksOptions {
-	order_by?: "id" | "created" | "updated" | "due_date"; // Order by specific fields
-	reverse?: boolean; // Reverse the order
-	subtasks?: boolean; // Include or exclude subtasks
-	archived?: boolean; // Include archived tasks
-	include_markdown_description?: boolean; // Return descriptions in Markdown
-	page?: number; // Page number to fetch
-	statuses?: string[]; // Filter by statuses
-	include_closed?: boolean; // Include closed tasks
-	include_timl?: boolean; // Include tasks in multiple lists
-	assignees?: string[]; // Filter by assignees
-	watchers?: string[]; // Filter by watchers
-	tags?: string[]; // Filter by tags
-	due_date_gt?: number; // Due date greater than (Unix time in ms)
-	due_date_lt?: number; // Due date less than (Unix time in ms)
-	date_created_gt?: number; // Date created greater than (Unix time in ms)
-	date_created_lt?: number; // Date created less than (Unix time in ms)
-	date_updated_gt?: number; // Date updated greater than (Unix time in ms)
-	date_updated_lt?: number; // Date updated less than (Unix time in ms)
-	date_done_gt?: number; // Date done greater than (Unix time in ms)
-	date_done_lt?: number; // Date done less than (Unix time in ms)
-	custom_fields?: string[]; // Filter by specific custom field values
-	custom_field?: string[]; // Filter by one specific custom field
-	custom_items?: number[]; // Filter by custom task types
-}
-
-export interface CreateTaskOptions {
-	name: string;
-	description?: string;
-	assignees?: number[];
-	status?: string;
-	priority?: number | null;
-	due_date?: number;
-	due_date_time?: boolean;
-	start_date?: number;
-	start_date_time?: boolean;
-	time_estimate?: number;
-	points?: number;
-	notify_all?: boolean;
-	parent?: string | null;
-	markdown_content?: string;
-	tags?: string[];
-	archived?: boolean;
-	links_to?: string | null;
-	custom_item_id?: number;
-}
-
 
 export interface HttpResponse<T> {
 	json: T;
@@ -88,6 +28,11 @@ export class ClickupApi implements IApi {
 	private readonly token: string;
 	private tempID: number;
 	private fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>;
+
+	public statusMapping?: StatusMapping;
+	public setStatusMapping(mapping: StatusMapping) {
+		this.statusMapping = mapping;
+	}
 
 	private constructor(token: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>) {
 		this.token = token;
@@ -206,18 +151,21 @@ export class ClickupApi implements IApi {
 		return tasks.map(ClickupTaskToTask);
 	}
 
-	//TODO: make typed
-	public async updateTaskParent(task_id: string, newParent: string) {
-		return this.updateTask(task_id, { parent: newParent } as any);
+	public async updateTaskParent(task_id: string, newParent: string): Promise<any> {
+		return this.updateTask(task_id, { parent: newParent } as Task);
 	}
 
-	//TODO: make typejd
-	public async updateTask(task_id: string, task: Task) {
+	public getMappingOrThrow() {
+		if (!this.statusMapping) throw new Error("StatusMapping not set on ClickupApi");
+		return this.statusMapping;
+	}
+
+	public async updateTask(task_id: string, task: Task): Promise<any> {
+		const mapping = this.getMappingOrThrow();
 		const url = `task/${task_id}`;
-		const fieldsToSend: (keyof Task)[] = [
-			"name", "parent"
-		];
-		const payload = cleanObject(task, fieldsToSend);
+		const parsed = TaskSchema.pick({ name: true, parent: true }).partial().parse(task);
+		const payload: Record<string, any> = { ...parsed };
+		payload.status = task.completed ? mapping.completedStatus : mapping.activeStatus;
 		const response = await this.fetcher<any>(url, {
 			method: "PUT",
 			body: JSON.stringify(payload),

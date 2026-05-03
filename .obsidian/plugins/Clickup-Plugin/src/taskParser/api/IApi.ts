@@ -1,6 +1,8 @@
-import { Team, Space, Folder, List, Task } from "./types";
+import { Team, Space, Folder, List, Task, StatusMapping } from "./types";
 
 export interface IApi {
+    statusMapping?: StatusMapping;
+    setStatusMapping(mapping: StatusMapping): void;
     getTasks(listId: number, options?: any): Promise<Task[]>;
     createTask(listId: number, task: any): Promise<any>;
     getTeams(): Promise<Team[]>;
@@ -11,6 +13,6 @@ export interface IApi {
     getLists(folderId: string): Promise<List[]>;
     getList(listId: number): Promise<List>;
     updateTaskParent(taskId: string, newParent: string): Promise<any>;
-    updateTask(taskId: string, task: any): Promise<any>;
+    updateTask(taskId: string, task: Task): Promise<any>;
     deleteTask(taskId: string): Promise<any>;
 }

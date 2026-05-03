@@ -104,6 +104,7 @@ describe("ApiService endpoints", () => {
 
 	type EndpointName = keyof typeof responses;
 
+	const dummyMapping = { completedStatus: "done", activeStatus: "open", availableStatuses: ["done", "open"] };
 	const endpoints: { name: EndpointName; call: (api: any) => Promise<any> }[] = [
 		{ name: "getTeams", call: (api: any) => api.getTeams() },
 		{ name: "getSpaces", call: (api: any) => api.getSpaces("teamid") },
@@ -114,8 +115,8 @@ describe("ApiService endpoints", () => {
 		{ name: "getList", call: (api: any) => api.getList(123) },
 		{ name: "getTasks", call: (api: any) => api.getTasks(123) },
 		{ name: "createTask", call: (api: any) => api.createTask(123, { name: "test" }) },
-		{ name: "updateTaskParent", call: (api: any) => api.updateTaskParent("taskid", "parentid") },
-		{ name: "updateTask", call: (api: any) => api.updateTask("taskid", { name: "test" }) },
+		{ name: "updateTaskParent", call: (api: any) => { api.setStatusMapping(dummyMapping); return api.updateTaskParent("taskid", "parentid"); } },
+		{ name: "updateTask", call: (api: any) => { api.setStatusMapping(dummyMapping); return api.updateTask("taskid", { name: "test" }); } },
 		{ name: "deleteTask", call: (api: any) => api.deleteTask("taskid") },
 	];
 
@@ -156,6 +157,8 @@ test("All ApiService public methods are explicitly tested", () => {
 		"updateTaskParent",
 		"updateTask",
 		"deleteTask",
+		"setStatusMapping",
+		"getMappingOrThrow",
 		// Add new methods here as you implement them
 	];
 

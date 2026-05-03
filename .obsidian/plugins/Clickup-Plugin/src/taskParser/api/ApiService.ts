@@ -1,8 +1,10 @@
-import { GetTasksOptions, CreateTaskOptions, ClickupApi } from "./clickup/ClickupApi";
+import { ClickupApi } from "./clickup/ClickupApi";
+import { GetTasksOptions, CreateTaskOptions } from "./clickup/types";
 import { _Clickup_CreateTask } from "./clickup/types/createTask";
 import { Logger } from "../utils/logger";
-import { Folder, List, Space, Task, Team } from "./types.js";
+import { Folder, List, Space, StatusMapping, Task, Team } from "./types.js";
 import { IApi } from "./IApi";
+import { catchError } from "../utils/error.js";
 
 export type { GetTasksOptions, CreateTaskOptions };
 
@@ -14,120 +16,91 @@ export function createApi(type: SupportedApiType, token: string): IApi {
 }
 
 export class ApiService {
-    private api: IApi;
+	private api: IApi;
 
-    constructor(type: SupportedApiType, token: string) {
-        this.api = createApi(type, token);
-    }
+	constructor(type: SupportedApiType, token: string) {
+		this.api = createApi(type, token);
+	}
+	
+	public setStatusMapping(mapping: import("./types").StatusMapping) {
+		this.api.setStatusMapping(mapping);
+	}
+
+	public getMappingOrThrow() {
+		if (!this.api.statusMapping) throw new Error("StatusMapping not set");
+		return this.api.statusMapping;
+	}
 	
 	async getTasks(listId: number, options?: GetTasksOptions): Promise<Task[]> {
-		try {
-			return await this.api.getTasks(listId, options);
-		} catch (err) {
-			Logger.error("api", "getTasks failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.getTasks(listId, options));
+		if (err) { Logger.error("api", "getTasks failed", err.message); throw err; }
+		return data;
 	}
 
 	//TODO: add own abstraction of createTask type?
 	async createTask(listId: number, task: CreateTaskOptions): Promise<_Clickup_CreateTask> {
-		try {
-			return await this.api.createTask(listId, task);
-		} catch (err) {
-			Logger.error("api", "createTask failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.createTask(listId, task));
+		if (err) { Logger.error("api", "createTask failed", err.message); throw err; }
+		return data;
 	}
 
 	async getTeams(): Promise<Team[]> {
-		try {
-			return await this.api.getTeams();
-		} catch (err) {
-			Logger.error("api", "getTeams failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.getTeams());
+		if (err) { Logger.error("api", "getTeams failed", err.message); throw err; }
+		return data;
 	}
 
 	async getSpaces(teamId: string): Promise<Space[]> {
-		try {
-			return await this.api.getSpaces(teamId);
-		} catch (err) {
-			Logger.error("api", "getSpaces failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.getSpaces(teamId));
+		if (err) { Logger.error("api", "getSpaces failed", err.message); throw err; }
+		return data;
 	}
 
 	async getSpace(spaceId: string): Promise<Space> {
-		try {
-			return await this.api.getSpace(spaceId);
-		} catch (err) {
-			Logger.error("api", "getSpace failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.getSpace(spaceId));
+		if (err) { Logger.error("api", "getSpace failed", err.message); throw err; }
+		return data;
 	}
 
 	async getFolders(spaceId: string): Promise<Folder[]> {
-		try {
-			return await this.api.getFolders(spaceId);
-		} catch (err) {
-			Logger.error("api", "getFolders failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.getFolders(spaceId));
+		if (err) { Logger.error("api", "getFolders failed", err.message); throw err; }
+		return data;
 	}
 
 	async getFolder(folderId: string): Promise<Folder> {
-		try {
-			return await this.api.getFolder(folderId);
-		} catch (err) {
-			Logger.error("api", "getFolder failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.getFolder(folderId));
+		if (err) { Logger.error("api", "getFolder failed", err.message); throw err; }
+		return data;
 	}
 
 	async getLists(folderId: string): Promise<List[]> {
-		try {
-			return await this.api.getLists(folderId);
-		} catch (err) {
-			Logger.error("api", "getLists failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.getLists(folderId));
+		if (err) { Logger.error("api", "getLists failed", err.message); throw err; }
+		return data;
 	}
 
 	async getList(listId: number): Promise<List> {
-		try {
-			return await this.api.getList(listId);
-		} catch (err) {
-			Logger.error("api", "getList failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.getList(listId));
+		if (err) { Logger.error("api", "getList failed", err.message); throw err; }
+		return data;
 	}
 
 	async updateTaskParent(taskId: string, newParent: string) {
-		try {
-			return await this.api.updateTaskParent(taskId, newParent);
-		} catch (err) {
-			Logger.error("api", "updateTaskParent failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.updateTaskParent(taskId, newParent));
+		if (err) { Logger.error("api", "updateTaskParent failed", err.message); throw err; }
+		return data;
 	}
 
 	async updateTask(taskId: string, task: any) {
-		try {
-			return await this.api.updateTask(taskId, task);
-		} catch (err) {
-			Logger.error("api", "updateTask failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.updateTask(taskId, task));
+		if (err) { Logger.error("api", "updateTask failed", err.message); throw err; }
+		return data;
 	}
 
 	async deleteTask(taskId: string) {
-		try {
-			return await this.api.deleteTask(taskId);
-		} catch (err) {
-			Logger.error("api", "deleteTask failed", err);
-			throw err;
-		}
+		const [err, data] = await catchError(this.api.deleteTask(taskId));
+		if (err) { Logger.error("api", "deleteTask failed", err.message); throw err; }
+		return data;
 	}
-
-	// Add other methods as needed...
 }

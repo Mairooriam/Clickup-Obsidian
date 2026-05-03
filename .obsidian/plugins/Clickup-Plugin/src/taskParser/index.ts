@@ -221,6 +221,9 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 }
 
 export { ApiService } from "./api/ApiService.js";
+export type { StatusMapping } from "./api/types.js";
+
+
 
 export const TaskParser = {
 	getRemote,

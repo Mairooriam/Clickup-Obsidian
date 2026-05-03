@@ -1,6 +1,20 @@
 import { Color, Colors } from "../utils/colors.js";
 import { z } from "zod";
 
+/**
+ * Clickup uses userdefined statuses. user needs to map status in order to work with 
+ * taskParser
+ * Populate `availableStatuses` by fetching statuses from the API at runtime,
+ * then let the user pick which status corresponds to each state.
+ */
+export interface StatusMapping {
+	/** Status string to use when Task.completed === true */
+	completedStatus: string;
+	/** Status string to use when Task.completed === false */
+	activeStatus: string;
+	/** All statuses available on the remote list, used to populate a picker */
+	availableStatuses: string[];
+}
 
 export const TaskSchema = z.object({
 	id: z.string(),
