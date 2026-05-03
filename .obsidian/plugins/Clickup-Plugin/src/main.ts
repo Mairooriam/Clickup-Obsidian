@@ -5,31 +5,23 @@ import { EditorView, ViewUpdate } from "@codemirror/view";
 
 import { cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor, cmdTokenize } from 'commands';
 import { ApiService, TaskParser } from "taskParser";
+
+const DEFAULT_STATUS_MAPPING = {
+	completedStatus: "completed",
+	activeStatus: "not started",
+	availableStatuses: ["completed", "not started"]
+};
+
+
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	api: ApiService;
 	static useColor: boolean = true;
 	async onload() {
 		await this.loadSettings();
-		this.api = new ApiService("clickup", this.settings.apiKey);
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-		if (this.settings.apiKey && this.settings.team.refreshOnOpen) {
-			try {
-				const teams = await this.api.getTeams();
-				this.settings.team.data = teams;
-				await this.saveSettings();
-			} catch (e) {
-				console.error("Failed to fetch teams on load:", e);
-			}
-		}
+
 		const slashFlagExtension = EditorView.updateListener.of((vu: ViewUpdate) => {
 			if (!vu.docChanged) return;
 			const { state, view } = vu;
@@ -51,7 +43,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService("clickup", this.settings.apiKey);
+				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
 
 				cmdGetRemote(this, editor, view);
 
@@ -74,7 +66,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService("clickup", this.settings.apiKey);
+				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
 				cmdCheckDiff(this, editor, view);
 			}
 		});
@@ -86,7 +78,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService("clickup", this.settings.apiKey);
+				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
 				cmdRemoveSelectionColor(this, editor, view);
 			}
 		});
@@ -98,7 +90,7 @@ export default class MyPlugin extends Plugin {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService("clickup", this.settings.apiKey);
+				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
 				cmdAskAndSetClickupSettings(this, editor, view);
 			}
 		});
@@ -107,11 +99,14 @@ export default class MyPlugin extends Plugin {
 			id: 'push-new',
 			name: 'push new',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				this.settings.statusMapping = DEFAULT_STATUS_MAPPING;
 				if (!this.settings.apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
 					return;
 				}
-				this.api = new ApiService("clickup", this.settings.apiKey);
+				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
+				console.log(this.api);
+
 
 				let selection = editor.getSelection();
 				const newMd = await TaskParser.processDiffToPost(selection, this.settings.list.selected, this.api);

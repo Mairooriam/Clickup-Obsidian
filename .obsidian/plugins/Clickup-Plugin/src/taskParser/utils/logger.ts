@@ -25,6 +25,7 @@ export type LoggerKey =
 	| "taskParser.index"
 	| "parser"
 	| "api"
+	| "clickup.api"
 	| "cache"
 	| "diff"
 	| "ui"

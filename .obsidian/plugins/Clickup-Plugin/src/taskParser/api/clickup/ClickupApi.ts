@@ -29,10 +29,6 @@ export class ClickupApi implements IApi {
 	private tempID: number;
 	private fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>;
 
-	public statusMapping?: StatusMapping;
-	public setStatusMapping(mapping: StatusMapping) {
-		this.statusMapping = mapping;
-	}
 
 	private constructor(token: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>) {
 		this.token = token;
@@ -40,6 +36,14 @@ export class ClickupApi implements IApi {
 		this.fetcherOverride = fetcherOverride;
 	}
 
+	public statusMapping?: StatusMapping;
+	public setStatusMapping(mapping: StatusMapping) {
+		this.statusMapping = mapping;
+	}
+	public getStatusMappingOrThrow(): StatusMapping {
+		if (!this.statusMapping) throw new Error("StatusMapping not set on ClickupApi");
+		return this.statusMapping;
+	};
 	public static getInstance(token?: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>): ClickupApi {
 		if (!ClickupApi.instance) {
 			if (!token) throw new Error("ClickupApi requires a token on first initialization");
@@ -155,17 +159,15 @@ export class ClickupApi implements IApi {
 		return this.updateTask(task_id, { parent: newParent } as Task);
 	}
 
-	public getMappingOrThrow() {
-		if (!this.statusMapping) throw new Error("StatusMapping not set on ClickupApi");
-		return this.statusMapping;
-	}
+
 
 	public async updateTask(task_id: string, task: Task): Promise<any> {
-		const mapping = this.getMappingOrThrow();
+		const mapping = this.getStatusMappingOrThrow();
 		const url = `task/${task_id}`;
 		const parsed = TaskSchema.pick({ name: true, parent: true }).partial().parse(task);
 		const payload: Record<string, any> = { ...parsed };
 		payload.status = task.completed ? mapping.completedStatus : mapping.activeStatus;
+		console.log("payload", payload);
 		const response = await this.fetcher<any>(url, {
 			method: "PUT",
 			body: JSON.stringify(payload),
@@ -173,6 +175,7 @@ export class ClickupApi implements IApi {
 				"Content-Type": "application/json",
 			},
 		});
+
 		return response.json;
 	}
 

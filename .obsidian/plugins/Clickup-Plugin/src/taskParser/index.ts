@@ -7,6 +7,7 @@ import { catchError } from "./utils/error.js"
 import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
 import { parse } from "path";
+import { map } from "zod";
 
 /**
  * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
@@ -183,6 +184,7 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 
 	// ----------------- TO PUT --------------------
 	if (diff.toPut.length) {
+
 		console.time("push-new:Put");
 		await Promise.all(diff.toPut.map(async t => {
 			const label = `push-new:Put:${t.name || ''}:${t.id}`;
@@ -221,6 +223,13 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 }
 
 export { ApiService } from "./api/ApiService.js";
+
+/**
+ * Clickup uses userdefined statuses. user needs to map status in order to work with 
+ * taskParser
+ * Populate `availableStatuses` by fetching statuses from the API at runtime,
+ * then let the user pick which status corresponds to each state.
+ */
 export type { StatusMapping } from "./api/types.js";
 
 

@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import MyPlugin from "./main";
 import { ClickupResponseSlim_GetTeams, } from "./taskParser/api/clickup/types/getTeams"
 import { ClickupResponseSlim_GetSpaces } from "taskParser/api/clickup/types";
+import { StatusMapping } from "taskParser";
 
 export interface TeamSettings {
 	data: ClickupResponseSlim_GetTeams;
@@ -28,6 +29,7 @@ export interface MyPluginSettings {
 	space: SpaceSettings;
 	folder: FolderSettings;
 	list: ListSettings;
+	statusMapping: StatusMapping;
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
@@ -50,6 +52,11 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
 		data: { lists: [] },
 		selected: 0,
 	},
+	statusMapping: {
+	completedStatus: "completed",
+	activeStatus: "not started",
+	availableStatuses: ["completed", "not started"]
+	}
 }
 
 export class SampleSettingTab extends PluginSettingTab {

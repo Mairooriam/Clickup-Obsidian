@@ -18,19 +18,24 @@ export function createApi(type: SupportedApiType, token: string): IApi {
 export class ApiService {
 	private api: IApi;
 
-	constructor(type: SupportedApiType, token: string) {
+	constructor(type: SupportedApiType, token: string, mapping: StatusMapping) {
 		this.api = createApi(type, token);
-	}
-	
-	public setStatusMapping(mapping: import("./types").StatusMapping) {
 		this.api.setStatusMapping(mapping);
 	}
 
-	public getMappingOrThrow() {
-		if (!this.api.statusMapping) throw new Error("StatusMapping not set");
-		return this.api.statusMapping;
+	public setStatusMapping(mapping: import("./types").StatusMapping) {
+		this.api.setStatusMapping(mapping);
+		Logger.log("api", "Api statusMapping was set to: ", mapping);
 	}
-	
+
+	public getMapping(): StatusMapping | undefined {
+		if (!this.api.statusMapping) {
+			return undefined
+		} else {
+			return this.api.statusMapping;
+		}
+	}
+
 	async getTasks(listId: number, options?: GetTasksOptions): Promise<Task[]> {
 		const [err, data] = await catchError(this.api.getTasks(listId, options));
 		if (err) { Logger.error("api", "getTasks failed", err.message); throw err; }
