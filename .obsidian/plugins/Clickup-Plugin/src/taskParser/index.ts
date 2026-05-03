@@ -19,9 +19,9 @@ import { map } from "zod";
  * @remarks
  * If the request fails, an empty string is returned and an error is logged.
  */
-export async function getRemote(listId: number, api: ApiService, options: GetTasksOptions = { subtasks: true, include_closed: true }): Promise<string> {
+export async function getRemote(listId: number, api: ApiService): Promise<string> {
 	console.log(listId);
-	const [err, tasks] = await catchError(api.getTasks(listId, options));
+	const [err, tasks] = await catchError(api.getTasks(listId));
 	if (err) {
 		return "";
 	}
@@ -60,20 +60,21 @@ async function getColoredDiffMarkdown(localMd: string, remoteId: number, api: Ap
 		Logger.warn("taskParser.index", "created empty cache.");
 		return "";
 	}
-	console.log("local cache", cache);
+	Logger.log("taskParser.index", "Local cache: ", cache);
 
-	let options: GetTasksOptions = {};
-	options.subtasks = true;
-	const [err, remote_tasks] = await catchError(api.getTasks(remoteId, options));
+	const [err, remote_tasks] = await catchError(api.getTasks(remoteId));
+	Logger.log("taskParser.index", "Remote Tasks: ", remote_tasks);
+	console.log(remote_tasks);
 	if (err) {
 		Logger.warn("taskParser.index", "Didn't get any tasks from remote. retunring emppty.");
 		return "";
 	}
 
-
 	let cacheRemote = TaskCache.fromApi(remote_tasks);
+	Logger.log("taskParser.index", "remote: ", cacheRemote);
 
 	let diff = cacheGenerateDiff(cache, cacheRemote);
+	Logger.log("taskParser.index", "diff: ", diff);
 	if (!diff.toDelete.length) {
 		Logger.log("taskParser.index", "No tasks to color to delete (RED)");
 	}
@@ -116,9 +117,8 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 	console.timeEnd("push-new:parse-local");
 
 	console.time("push-new:get-remote");
-	let options: GetTasksOptions = {};
-	options.subtasks = true;
-	const [err, remote_tasks] = await catchError(api.getTasks(targetId, options));
+
+	const [err, remote_tasks] = await catchError(api.getTasks(targetId));
 	if (err) {
 		return "";
 	}

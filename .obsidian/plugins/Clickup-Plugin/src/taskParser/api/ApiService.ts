@@ -37,7 +37,7 @@ export class ApiService {
 		}
 	}
 
-	async getTasks(listId: number, options?: GetTasksOptions): Promise<Task[]> {
+	async getTasks(listId: number, options: GetTasksOptions = { subtasks: true, include_closed: true }): Promise<Task[]> {
 		const [err, data] = await catchError(this.api.getTasks(listId, options));
 		if (err) { Logger.error("api", "getTasks failed", err.message); throw err; }
 		return data;
