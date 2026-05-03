@@ -29,6 +29,7 @@ export interface MyPluginSettings {
 	space: SpaceSettings;
 	folder: FolderSettings;
 	list: ListSettings;
+	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	statusMapping: StatusMapping;
 }
 
@@ -52,10 +53,11 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
 		data: { lists: [] },
 		selected: 0,
 	},
+	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	statusMapping: {
-	completedStatus: "completed",
-	activeStatus: "not started",
-	availableStatuses: ["completed", "not started"]
+		completedStatus: "completed",
+		activeStatus: "not started",
+		availableStatuses: ["completed", "not started"]
 	}
 }
 

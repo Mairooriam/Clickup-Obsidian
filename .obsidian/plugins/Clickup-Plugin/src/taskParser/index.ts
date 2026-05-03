@@ -19,9 +19,7 @@ import { map } from "zod";
  * @remarks
  * If the request fails, an empty string is returned and an error is logged.
  */
-export async function getRemote(listId: number, api: ApiService): Promise<string> {
-	let options: GetTasksOptions = {};
-	options.subtasks = true;
+export async function getRemote(listId: number, api: ApiService, options: GetTasksOptions = { subtasks: true, include_closed: true }): Promise<string> {
 	console.log(listId);
 	const [err, tasks] = await catchError(api.getTasks(listId, options));
 	if (err) {

@@ -35,11 +35,13 @@ export class ClickupApi implements IApi {
 		this.tempID = 0;
 		this.fetcherOverride = fetcherOverride;
 	}
-
+	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	public statusMapping?: StatusMapping;
 	public setStatusMapping(mapping: StatusMapping) {
 		this.statusMapping = mapping;
 	}
+
+	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	public getStatusMappingOrThrow(): StatusMapping {
 		if (!this.statusMapping) throw new Error("StatusMapping not set on ClickupApi");
 		return this.statusMapping;

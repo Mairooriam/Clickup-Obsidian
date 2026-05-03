@@ -23,11 +23,12 @@ export class ApiService {
 		this.api.setStatusMapping(mapping);
 	}
 
+	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	public setStatusMapping(mapping: import("./types").StatusMapping) {
 		this.api.setStatusMapping(mapping);
 		Logger.log("api", "Api statusMapping was set to: ", mapping);
 	}
-
+	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	public getMapping(): StatusMapping | undefined {
 		if (!this.api.statusMapping) {
 			return undefined

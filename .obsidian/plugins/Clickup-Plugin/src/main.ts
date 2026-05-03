@@ -6,6 +6,7 @@ import { EditorView, ViewUpdate } from "@codemirror/view";
 import { cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor, cmdTokenize } from 'commands';
 import { ApiService, TaskParser } from "taskParser";
 
+//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 const DEFAULT_STATUS_MAPPING = {
 	completedStatus: "completed",
 	activeStatus: "not started",
@@ -99,6 +100,7 @@ export default class MyPlugin extends Plugin {
 			id: 'push-new',
 			name: 'push new',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 				this.settings.statusMapping = DEFAULT_STATUS_MAPPING;
 				if (!this.settings.apiKey) {
 					new Notice("API key not set. Please enter it in the plugin settings.");
