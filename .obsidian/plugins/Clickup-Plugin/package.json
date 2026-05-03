@@ -29,6 +29,7 @@
 	},
 	"dependencies": {
 		"obsidian": "latest",
+		"temporal-polyfill": "^0.3.2",
 		"zod": "^4.4.2"
 	}
 }

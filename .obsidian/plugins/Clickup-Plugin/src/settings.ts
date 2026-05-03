@@ -1,6 +1,13 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
-import MyPlugin from "./main";
-import { ClickupResponseSlim_GetTeams, } from "./taskParser/api/clickup/types/getTeams"
+import { App, PluginSettingTab, Setting, Notice } from 'obsidian'
+import type PMPlugin from './main'
+import { PMSettings, DEFAULT_SETTINGS, makeId } from './obsidian-pm/types'
+import { flattenTasks } from './obsidian-pm/store/TaskTreeOps'
+
+export type { PMSettings }
+export { DEFAULT_SETTINGS }
+
+//NOITE: MIRO SETTINGS START
+import { ClickupResponseSlim_GetTeams, } from "./obsidian-pm/taskParser/api/clickup/types/getTeams"
 import { ClickupResponseSlim_GetSpaces } from "taskParser/api/clickup/types";
 import { StatusMapping } from "taskParser";
 
@@ -33,7 +40,7 @@ export interface MyPluginSettings {
 	statusMapping: StatusMapping;
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
+export const MIR_DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default',
 	apiKey: "",
 	team: {
@@ -60,201 +67,387 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
 		availableStatuses: ["completed", "not started"]
 	}
 }
+//NOTE: MIRO SETTINGS END
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
+export class PMSettingTab extends PluginSettingTab {
+	plugin: PMPlugin
+
+	constructor(app: App, plugin: PMPlugin) {
+		super(app, plugin)
+		this.plugin = plugin
 	}
 
-	onLoad(): void { }
+	display(): void {
+		const { containerEl } = this
+		containerEl.empty()
+		containerEl.addClass('pm-settings')
 
-	async display(): Promise<void> {
-		const { containerEl } = this;
-		containerEl.empty();
-
-		containerEl.createEl('h2', { text: 'Plugin Settings' });
-
-		// API Key
+		// ── General ──────────────────────────────────────────────────────────────
 		new Setting(containerEl)
-			.setName('API Key')
-			.setDesc('Your ClickUp API key')
-			.addText(text => text
-				.setPlaceholder('Enter your API key')
-				.setValue(this.plugin.settings.apiKey)
-				.onChange(async (value) => {
-					this.plugin.settings.apiKey = value;
-					await this.plugin.saveSettings();
-				}));
+			.setName('Projects folder')
+			.setDesc('Vault folder where project files are stored.')
+			.addText((text) =>
+				text
+					.setPlaceholder('Projects')
+					.setValue(this.plugin.settings.projectsFolder)
+					.onChange(async (v) => {
+						this.plugin.settings.projectsFolder = v.trim() || 'Projects'
+						await this.plugin.saveSettings()
+					})
+			)
 
-		// Team ID and Name
-		const selectedTeamId = this.plugin.settings.team.selected;
-		const selectedTeam = this.plugin.settings.team.data.teams?.find(t => t.id === selectedTeamId);
-		containerEl.createEl('div', { text: `Team Name: ${selectedTeam ? selectedTeam.name : 'N/A'}` });
 		new Setting(containerEl)
-			.setName('Team')
-			.setDesc('Selected Team')
-			.addText(text => text
-				.setPlaceholder('Team ID')
-				.setValue(selectedTeamId)
-				.onChange(async (value) => {
-					this.plugin.settings.team.selected = value;
-					await this.plugin.saveSettings();
-					this.display();
-				}));
+			.setName('Default view')
+			.setDesc('Which view opens when you open a project.')
+			.addDropdown((dd) =>
+				dd
+					.addOption('table', 'Table')
+					.addOption('gantt', 'Gantt')
+					.addOption('kanban', 'Board')
+					.setValue(this.plugin.settings.defaultView)
+					.onChange(async (v) => {
+						this.plugin.settings.defaultView = v as PMSettings['defaultView']
+						await this.plugin.saveSettings()
+					})
+			)
 
-		// Space ID and Name
-		const selectedSpaceId = this.plugin.settings.space.selected;
-		const selectedSpace = this.plugin.settings.space.data.spaces?.find(s => s.id === selectedSpaceId);
-		containerEl.createEl('div', { text: `Space Name: ${selectedSpace ? selectedSpace.name : 'N/A'}` });
-		new Setting(containerEl)
-			.setName('Space')
-			.setDesc('Selected Space')
-			.addText(text => text
-				.setPlaceholder('Space ID')
-				.setValue(selectedSpaceId)
-				.onChange(async (value) => {
-					this.plugin.settings.space.selected = value;
-					await this.plugin.saveSettings();
-					this.display();
-				}));
+		new Setting(containerEl).setName('Default gantt granularity').addDropdown((dd) =>
+			dd
+				.addOption('day', 'Day')
+				.addOption('week', 'Week')
+				.addOption('month', 'Month')
+				.addOption('quarter', 'Quarter')
+				.setValue(this.plugin.settings.ganttGranularity)
+				.onChange(async (v) => {
+					this.plugin.settings.ganttGranularity = v as PMSettings['ganttGranularity']
+					await this.plugin.saveSettings()
+				})
+		)
 
-		// Folder ID and Name
-		const selectedFolderId = this.plugin.settings.folder.selected;
-		const selectedFolder = this.plugin.settings.folder.data.folders?.find(f => f.id === selectedFolderId);
-		containerEl.createEl('div', { text: `Folder Name: ${selectedFolder ? selectedFolder.name : 'N/A'}` });
 		new Setting(containerEl)
-			.setName('Folder')
-			.setDesc('Selected Folder')
-			.addText(text => text
-				.setPlaceholder('Folder ID')
-				.setValue(selectedFolderId)
-				.onChange(async (value) => {
-					this.plugin.settings.folder.selected = value;
-					await this.plugin.saveSettings();
-					this.display();
-				}));
+			.setName('Gantt week label')
+			.setDesc('What to display in weekly gantt header cells.')
+			.addDropdown((dd) =>
+				dd
+					.addOption('weekNumber', 'Week number (w15)')
+					.addOption('dateRange', 'Date range (apr 7\u201313)')
+					.addOption('both', 'Both (w15: apr 7\u201313)')
+					.setValue(this.plugin.settings.ganttWeekLabel)
+					.onChange(async (v) => {
+						this.plugin.settings.ganttWeekLabel = v as PMSettings['ganttWeekLabel']
+						await this.plugin.saveSettings()
+					})
+			)
 
-		// List ID and Name
-		const selectedListId = this.plugin.settings.list.selected;
-		const selectedList = this.plugin.settings.list.data.lists?.find(l => l.id === selectedListId);
-		containerEl.createEl('div', { text: `List Name: ${selectedList ? selectedList.name : 'N/A'}` });
 		new Setting(containerEl)
-			.setName('List')
-			.setDesc('Selected List')
-			.addText(text => text
-				.setPlaceholder('List ID')
-				.setValue(String(selectedListId))
-				.onChange(async (value) => {
-					this.plugin.settings.list.selected = Number(value);
-					await this.plugin.saveSettings();
-					this.display();
-				}));
+			.setName('Show subtasks on board')
+			.setDesc('Display subtasks as individual cards on the kanban board.')
+			.addToggle((t) =>
+				t.setValue(this.plugin.settings.kanbanShowSubtasks).onChange(async (v) => {
+					this.plugin.settings.kanbanShowSubtasks = v
+					await this.plugin.saveSettings()
+				})
+			)
+
+		// ── Notifications ─────────────────────────────────────────────────────────
+		new Setting(containerEl).setName('Due date notifications').setHeading()
+
+		new Setting(containerEl)
+			.setName('Enable notifications')
+			.setDesc('Show a banner when tasks are approaching their due date.')
+			.addToggle((t) =>
+				t.setValue(this.plugin.settings.notificationsEnabled).onChange(async (v) => {
+					this.plugin.settings.notificationsEnabled = v
+					await this.plugin.saveSettings()
+				})
+			)
+
+		new Setting(containerEl)
+			.setName('Lead time (days)')
+			.setDesc('How many days before the due date to show the notification.')
+			.addSlider((sl) =>
+				sl
+					.setLimits(1, 14, 1)
+					.setValue(this.plugin.settings.notificationLeadDays)
+					.setDynamicTooltip()
+					.onChange(async (v) => {
+						this.plugin.settings.notificationLeadDays = v
+						await this.plugin.saveSettings()
+					})
+			)
+
+		// ── Scheduling ───────────────────────────────────────────────────────────
+		new Setting(containerEl).setName('Scheduling').setHeading()
+
+		new Setting(containerEl)
+			.setName('Auto-schedule')
+			.setDesc('Automatically adjust dependent task dates when a task changes.')
+			.addToggle((t) =>
+				t.setValue(this.plugin.settings.autoSchedule).onChange(async (v) => {
+					this.plugin.settings.autoSchedule = v
+					await this.plugin.saveSettings()
+				})
+			)
+
+		// ── Team Members ──────────────────────────────────────────────────────────
+		new Setting(containerEl).setName('Team members').setHeading()
+
+		containerEl.createEl('p', {
+			cls: 'pm-settings-desc',
+			text: 'Global list of people available as assignees across all projects.'
+		})
+		// margin handled by .pm-settings-desc CSS class
+
+		const membersContainer = containerEl.createDiv('pm-settings-members')
+		this.renderMembersList(membersContainer)
+
+		new Setting(containerEl).addButton((btn) =>
+			btn
+				.setButtonText('+ add member')
+				.setCta()
+				.onClick(() => {
+					this.plugin.settings.globalTeamMembers.push('')
+					void this.plugin.saveSettings()
+					this.renderMembersList(membersContainer)
+				})
+		)
+
+		// ── Statuses ──────────────────────────────────────────────────────────────
+		new Setting(containerEl).setName('Statuses').setHeading()
+		containerEl.createEl('p', {
+			cls: 'pm-settings-desc',
+			text: 'Customize status labels, colors, and icons. Drag to reorder.'
+		})
+
+		const statusContainer = containerEl.createDiv('pm-settings-statuses')
+		this.renderStatusList(statusContainer)
+
+		new Setting(containerEl).addButton((btn) =>
+			btn
+				.setButtonText('+ add status')
+				.setCta()
+				.onClick(() => {
+					const id = 'status-' + makeId().slice(0, 6)
+					this.plugin.settings.statuses.push({
+						id,
+						label: 'New status',
+						color: '#8a94a0',
+						icon: '',
+						complete: false
+					})
+					void this.plugin.saveSettings()
+					this.renderStatusList(statusContainer)
+				})
+		)
+
+		//NOTE: MIRO SETTINGS DISPLAY
+				containerEl.createEl('h2', { text: 'Plugin Settings' });
+
+				// API Key
+				new Setting(containerEl)
+					.setName('API Key')
+					.setDesc('Your ClickUp API key')
+					.addText(text => text
+						.setPlaceholder('Enter your API key')
+						.setValue(this.plugin.MirSettings.apiKey)
+						.onChange(async (value) => {
+							this.plugin.MirSettings.apiKey = value;
+							await this.plugin.saveSettings();
+						}));
+
+				// Team ID and Name
+				const selectedTeamId = this.plugin.MirSettings.team.selected;
+				const selectedTeam = this.plugin.MirSettings.team.data.teams?.find(t => t.id === selectedTeamId);
+				containerEl.createEl('div', { text: `Team Name: ${selectedTeam ? selectedTeam.name : 'N/A'}` });
+				new Setting(containerEl)
+					.setName('Team')
+					.setDesc('Selected Team')
+					.addText(text => text
+						.setPlaceholder('Team ID')
+						.setValue(selectedTeamId)
+						.onChange(async (value) => {
+							this.plugin.MirSettings.team.selected = value;
+							await this.plugin.saveSettings();
+							this.display();
+						}));
+
+				// Space ID and Name
+				const selectedSpaceId = this.plugin.MirSettings.space.selected;
+				const selectedSpace = this.plugin.MirSettings.space.data.spaces?.find(s => s.id === selectedSpaceId);
+				containerEl.createEl('div', { text: `Space Name: ${selectedSpace ? selectedSpace.name : 'N/A'}` });
+				new Setting(containerEl)
+					.setName('Space')
+					.setDesc('Selected Space')
+					.addText(text => text
+						.setPlaceholder('Space ID')
+						.setValue(selectedSpaceId)
+						.onChange(async (value) => {
+							this.plugin.MirSettings.space.selected = value;
+							await this.plugin.saveSettings();
+							this.display();
+						}));
+
+				// Folder ID and Name
+				const selectedFolderId = this.plugin.MirSettings.folder.selected;
+				const selectedFolder = this.plugin.MirSettings.folder.data.folders?.find(f => f.id === selectedFolderId);
+				containerEl.createEl('div', { text: `Folder Name: ${selectedFolder ? selectedFolder.name : 'N/A'}` });
+				new Setting(containerEl)
+					.setName('Folder')
+					.setDesc('Selected Folder')
+					.addText(text => text
+						.setPlaceholder('Folder ID')
+						.setValue(selectedFolderId)
+						.onChange(async (value) => {
+							this.plugin.MirSettings.folder.selected = value;
+							await this.plugin.saveSettings();
+							this.display();
+						}));
+
+				// List ID and Name
+				const selectedListId = this.plugin.MirSettings.list.selected;
+				const selectedList = this.plugin.MirSettings.list.data.lists?.find(l => l.id === selectedListId);
+				containerEl.createEl('div', { text: `List Name: ${selectedList ? selectedList.name : 'N/A'}` });
+				new Setting(containerEl)
+					.setName('List')
+					.setDesc('Selected List')
+					.addText(text => text
+						.setPlaceholder('List ID')
+						.setValue(String(selectedListId))
+						.onChange(async (value) => {
+							this.plugin.MirSettings.list.selected = Number(value);
+							await this.plugin.saveSettings();
+							this.display();
+						}));
+				//NOTE:MIRO SETTINGS NED
 	}
 
-	private displayAuth(containerEl: HTMLElement) {
-
-		// Refresh button
-		let refreshBtn = containerEl.createEl("button", { text: "Refresh teams" });
-		let statusEl = containerEl.createSpan({ text: "" });
-		refreshBtn.onclick = async () => {
-			refreshBtn.disabled = true;
-			statusEl.setText("Refreshing...");
-			const teams = await this.plugin.api.getTeamsSlim();
-			this.plugin.settings.team.data = teams;
-			await this.plugin.saveSettings();
-			statusEl.setText("Teams refreshed!");
-			refreshBtn.disabled = false;
-			console.log(teams);
-			this.display();
-		};
-
-		// API Key input
-		new Setting(containerEl)
-			.setName('API Key')
-			.setDesc('Your ClickUp API key')
-			.addText(text => text
-				.setPlaceholder('Enter your API key')
-				.setValue(this.plugin.settings.apiKey)
-				.onChange(async (value) => {
-					this.plugin.settings.apiKey = value;
-					await this.plugin.saveSettings();
-				}));
+	private renderMembersList(container: HTMLElement): void {
+		container.empty()
+		const members = this.plugin.settings.globalTeamMembers
+		members.forEach((m, i) => {
+			const row = container.createDiv('pm-settings-member-row')
+			const input = row.createEl('input', { type: 'text', value: m })
+			input.placeholder = 'Name'
+			input.addEventListener('change', () => {
+				this.plugin.settings.globalTeamMembers[i] = input.value
+				void this.plugin.saveSettings()
+			})
+			const del = row.createEl('button', { text: '✕' })
+			del.addClass('pm-settings-del')
+			del.addEventListener('click', () => {
+				this.plugin.settings.globalTeamMembers.splice(i, 1)
+				void this.plugin.saveSettings()
+				this.renderMembersList(container)
+			})
+		})
 	}
 
-	private displayTeamSection(containerEl: HTMLElement) {
-		const teamOptions: Record<string, string> = { "0": "None" };
-		this.plugin.settings.team.data.teams.forEach(t => {
-			teamOptions[t.id] = t.name;
-		});
-
-		new Setting(containerEl)
-			.setName('Load teams on settings open')
-			.setDesc('Automatically fetch teams from ClickUp every time you open settings')
-			.addToggle(toggle => {
-				toggle
-					.setValue(this.plugin.settings.team.refreshOnOpen)
-					.onChange(async (value) => {
-						this.plugin.settings.team.refreshOnOpen = value;
-						await this.plugin.saveSettings();
-					});
-			});
-		new Setting(containerEl)
-			.setName('Selected Team')
-			.setDesc('Choose your team')
-			.addDropdown(drop => {
-				drop
-					.addOptions(teamOptions)
-					.setValue(this.plugin.settings.team.selected)
-					.onChange(async (value) => {
-						this.plugin.settings.team.selected = value;
-						await this.plugin.saveSettings();
-					});
-			});
-	}
-
-	private displaySpaceSection(containerEl: HTMLElement) {
-		containerEl.createEl('h3', { text: 'Space' });
-
-		// Only show if a team is selected
-		if (this.plugin.settings.team.selected === "0") {
-			containerEl.createEl('div', { text: 'Select a team first.' });
-			return;
+	private async remapOrphanTasks(deletedId: string, deletedLabel: string): Promise<void> {
+		const statuses = this.plugin.settings.statuses
+		if (statuses.length === 0) return
+		const defaultStatus = statuses[0]
+		const folder = this.plugin.settings.projectsFolder
+		const projects = await this.plugin.store.loadAllProjects(folder)
+		let remapped = 0
+		for (const project of projects) {
+			const flat = flattenTasks(project.tasks)
+			let modified = false
+			for (const { task } of flat) {
+				if (task.status === deletedId) {
+					task.status = defaultStatus.id
+					task.updatedAt = new Date().toISOString()
+					remapped++
+					modified = true
+				}
+			}
+			if (modified) {
+				await this.plugin.store.saveProject(project)
+			}
 		}
+		if (remapped > 0) {
+			new Notice(
+				`Remapped ${remapped} task${remapped === 1 ? '' : 's'} from '${deletedLabel}' to '${defaultStatus.label}'.`
+			)
+		}
+	}
 
-		let refreshBtn = containerEl.createEl("button", { text: "Refresh spaces" });
-		let statusEl = containerEl.createSpan({ text: "" });
-		refreshBtn.onclick = async () => {
-			refreshBtn.disabled = true;
-			statusEl.setText("Refreshing...");
-			const spaces = await this.plugin.api.getSpacesSlim(this.plugin.settings.team.selected);
-			this.plugin.settings.space.data = spaces;
-			await this.plugin.saveSettings();
-			statusEl.setText("Spaces refreshed!");
-			refreshBtn.disabled = false;
-			this.display();
-		};
+	private renderStatusList(container: HTMLElement): void {
+		container.empty()
+		this.plugin.settings.statuses.forEach((s, i) => {
+			const row = container.createDiv('pm-settings-status-row')
 
-		const spaceOptions: Record<string, string> = { "0": "None" };
-		this.plugin.settings.space.data.spaces.forEach(s => {
-			spaceOptions[s.id] = s.name;
-		});
+			// Drag handle
+			row.createEl('span', { text: '⠿', cls: 'pm-settings-drag-handle' })
+			row.draggable = true
+			row.addEventListener('dragstart', (e) => {
+				e.dataTransfer?.setData('text/plain', String(i))
+				row.addClass('pm-settings-row--dragging')
+			})
+			row.addEventListener('dragend', () => {
+				row.removeClass('pm-settings-row--dragging')
+			})
+			row.addEventListener('dragover', (e) => {
+				e.preventDefault()
+			})
+			row.addEventListener('drop', (e) => {
+				e.preventDefault()
+				const fromIdx = parseInt(e.dataTransfer?.getData('text/plain') ?? '', 10)
+				if (isNaN(fromIdx) || fromIdx === i) return
+				const statuses = this.plugin.settings.statuses
+				const [moved] = statuses.splice(fromIdx, 1)
+				statuses.splice(i, 0, moved)
+				void this.plugin.saveSettings()
+				this.renderStatusList(container)
+			})
 
-		new Setting(containerEl)
-			.setName('Selected Space')
-			.setDesc('Choose your space')
-			.addDropdown(drop => {
-				drop
-					.addOptions(spaceOptions)
-					.setValue(this.plugin.settings.space.selected)
-					.onChange(async (value) => {
-						this.plugin.settings.space.selected = value;
-						await this.plugin.saveSettings();
-					});
-			});
+			// Icon input
+			const icon = row.createEl('input', { type: 'text', value: s.icon })
+			icon.addClass('pm-settings-status-icon')
+			icon.placeholder = ''
+			icon.addEventListener('change', () => {
+				this.plugin.settings.statuses[i].icon = icon.value
+				void this.plugin.saveSettings()
+			})
+
+			// Label input
+			const label = row.createEl('input', { type: 'text', value: s.label })
+			label.addClass('pm-settings-status-label')
+			label.addEventListener('change', () => {
+				this.plugin.settings.statuses[i].label = label.value
+				void this.plugin.saveSettings()
+			})
+
+			// Color picker
+			const color = row.createEl('input', { type: 'color', value: s.color })
+			color.addEventListener('change', () => {
+				this.plugin.settings.statuses[i].color = color.value
+				void this.plugin.saveSettings()
+			})
+
+			// Complete toggle
+			const completeLabel = row.createEl('label', { cls: 'pm-settings-complete-toggle' })
+			const checkbox = completeLabel.createEl('input', { type: 'checkbox' })
+			checkbox.checked = s.complete
+			completeLabel.createEl('span', { text: 'Done', cls: 'pm-settings-complete-text' })
+			checkbox.addEventListener('change', () => {
+				this.plugin.settings.statuses[i].complete = checkbox.checked
+				void this.plugin.saveSettings()
+			})
+
+			// Delete button
+			const del = row.createEl('button', { text: '✕', cls: 'pm-settings-del' })
+			del.addEventListener('click', () => {
+				if (this.plugin.settings.statuses.length <= 1) {
+					new Notice('You must have at least one status.')
+					return
+				}
+				const deletedStatus = this.plugin.settings.statuses[i]
+				this.plugin.settings.statuses.splice(i, 1)
+				void this.plugin.saveSettings()
+				this.renderStatusList(container)
+				void this.remapOrphanTasks(deletedStatus.id, deletedStatus.label)
+			})
+		})
 	}
 }
-
-
