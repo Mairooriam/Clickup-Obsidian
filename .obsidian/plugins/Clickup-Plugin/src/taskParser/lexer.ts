@@ -36,6 +36,16 @@ export class Lexer {
 		this.input = input;
 	}
 
+	private createToken(type: TokenType, value: string, flags?: Record<string, string>): Token {
+		return {
+			type,
+			value,
+			row: this.row,
+			col: this.col,
+			...(flags ? { flags } : {})
+		};
+	}
+
 	private isAtEnd(): boolean {
 		return this.position >= this.input.length;
 	}
@@ -142,11 +152,11 @@ export class Lexer {
 				case '\n':
 					this.advance();
 					this.skipWhitespace();
-					return { type: TokenType.NEWLINE, value: '\n', row: this.row, col: this.col };
+					return this.createToken(TokenType.NEWLINE, "\n");
 				case '\t': {
 					const indent = this.countChar(['\t']);
 					if (indent > 0) {
-						return { type: TokenType.INDENT, value: indent.toString(), row: this.row, col: this.col };
+						return this.createToken(TokenType.INDENT, indent.toString());
 					}
 					this.advance();
 					continue;
@@ -158,23 +168,23 @@ export class Lexer {
 					if (this.peek() === ' ') {
 						this.advance();
 						this.skipWhitespace();
-						return { type: TokenType.DASH, value: '-', row: this.row, col: this.col };
+						return this.createToken(TokenType.DASH, "-");
 					}
 				case '~':
 					if (this.peek() === '~') {
 						this.advance(2);
 						this.skipWhitespace();
-						return { type: TokenType.STRIKETROUGH, value: '~~', row: this.row, col: this.col };
+						return this.createToken(TokenType.STRIKETROUGH, '~~')
 					}
 				case '[':
 					if (this.peek() === ' ' && this.peek(2) === ']') {
 						this.advance(3);
-						const checkboxEmpty = { type: TokenType.CHECKBOX_EMPTY, value: 'false', row: this.row, col: this.col };
+						const checkboxEmpty = this.createToken(TokenType.CHECKBOX_EMPTY, 'false');
 						this.skipWhitespace();
 						return checkboxEmpty;
 					}
 					else if (this.peek() === 'x' && this.peek(2) === ']') {
-						const checkboxCompleted = { type: TokenType.CHECKBOX_COMPLETED, value: 'true', row: this.row, col: this.col };
+						const checkboxCompleted = this.createToken(TokenType.CHECKBOX_COMPLETED, 'true');
 						this.advance(3);
 						this.skipWhitespace();
 						return checkboxCompleted;
@@ -193,11 +203,10 @@ export class Lexer {
 
 						this.advance();
 						this.skipWhitespace()
-						return { type: TokenType.FLAG, value: text, row: this.row, col: this.col };
+						return this.createToken(TokenType.FLAG, text);
 					}
 				case ']': {
-					return { type: TokenType.SQUARE_BRACE_CLOSED, value: "]", row: this.row, col: this.col };
-
+					return this.createToken(TokenType.SQUARE_BRACE_CLOSED, ']');
 				}
 				case '<':
 					// </tagname> - html close
@@ -209,7 +218,7 @@ export class Lexer {
 							this.advance();
 						}
 						this.advance();
-						return { type: TokenType.HTML_CLOSE, value: tag.trim(), row: this.row, col: this.col };
+						return this.createToken(TokenType.HTML_CLOSE, tag.trim());
 					}
 					if (this.peek() !== '>') {
 						let tag = '';
@@ -229,7 +238,7 @@ export class Lexer {
 								flags[match[1]] = match[2];
 							}
 						}
-						return { type: TokenType.HTML_OPEN, value: tagName, row: this.row, col: this.col, flags };
+						return this.createToken(TokenType.HTML_OPEN, tagName);
 					}
 					this.advance();
 					break;
@@ -242,32 +251,19 @@ export class Lexer {
 					}
 					this.skipWhitespace()
 
-					return {
-						type: TokenType.HEADING,
-						value: String(level),
-						row: this.row,
-						col: this.col,
-						flags: {}
-					};
+					return this.createToken(TokenType.HEADING, String(level));
 				}
 				default: {
 					const text = this.readText();
 					if (text) {
 						const { text: cleanText, flags } = this.parseTextWithFlags(text);
-						return {
-							type: TokenType.TEXT,
-							value: cleanText,
-							row: this.row,
-							col: this.col,
-							flags: flags
-						};
+						return this.createToken(TokenType.TEXT, cleanText, flags);
 					}
 					this.advance();
-
 				}
 			}
 		}
-		return { type: TokenType.EOF, value: '', row: this.row, col: this.col };
+		return this.createToken(TokenType.EOF, '');
 	}
 
 	tokenize(): Token[] {
