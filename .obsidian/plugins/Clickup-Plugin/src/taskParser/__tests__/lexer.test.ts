@@ -43,7 +43,6 @@ describe('Lexer', () => {
 		const tokens = lexer.tokenize();
 		expect(tokens.some(t => t.value.includes('Uncompleted Task'))).toBe(true);
 		expect(tokens.some(t => t.value.includes('Completed Task'))).toBe(true);
-		console.log(tokens);
 	});
 
 
@@ -69,7 +68,6 @@ describe('Lexer', () => {
 		const lexer = new Lexer(input);
 		const tokens = lexer.tokenize();
 
-		console.log(tokens);
 		expect(tokens[0]).toMatchObject({
 			type: 'HTML Open',
 			value: 'span',

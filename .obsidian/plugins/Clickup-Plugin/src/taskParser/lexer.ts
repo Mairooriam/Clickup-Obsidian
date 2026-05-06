@@ -238,7 +238,7 @@ export class Lexer {
 								flags[match[1]] = match[2];
 							}
 						}
-						return this.createToken(TokenType.HTML_OPEN, tagName);
+						return this.createToken(TokenType.HTML_OPEN, tagName, flags);
 					}
 					this.advance();
 					break;

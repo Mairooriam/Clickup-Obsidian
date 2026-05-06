@@ -21,7 +21,8 @@ export async function getRemote(listId: number, api: ApiService): Promise<string
 	console.log(listId);
 	const [err, tasks] = await catchError(api.getTasks(listId));
 	if (err) {
-		return "";
+		Logger.error("taskParser.index", "getTasks failed with listId:", listId);
+		throw err;
 	}
 
 	if (!tasks.length) {
@@ -219,7 +220,7 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 }
 
 export { ApiService } from "./api/ApiService.js";
-
+export * as Errors from "./utils/error.js";
 /**
  * Clickup uses userdefined statuses. user needs to map status in order to work with 
  * taskParser
@@ -227,7 +228,6 @@ export { ApiService } from "./api/ApiService.js";
  * then let the user pick which status corresponds to each state.
  */
 export type { StatusMapping } from "./api/types.js";
-
 export const TaskParser = {
 	getRemote,
 	getColoredDiffMarkdown,

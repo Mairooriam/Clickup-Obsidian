@@ -158,7 +158,7 @@ test("All ApiService public methods are explicitly tested", () => {
 		"updateTask",
 		"deleteTask",
 		"setStatusMapping",
-		"getMappingOrThrow",
+		"getStatusMappingOrThrow",
 		// Add new methods here as you implement them
 	];
 

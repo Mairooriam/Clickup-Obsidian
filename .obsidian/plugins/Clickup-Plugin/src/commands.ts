@@ -3,7 +3,8 @@ import { GenericSuggestModal } from "./components/suggestModal";
 import type { Team, Space, Folder, List } from "./taskParser/api/types";
 import MyPlugin from "main";
 import { askYesNo } from "components/YesNoModal";
-import { TaskParser, TaskParserDev } from "taskParser";
+import { TaskParser, TaskParserDev, Errors } from "taskParser";
+import { noticeErrors } from "components/ErrorNoticer";
 
 async function selectFromModal<T>(
 	app: App,
@@ -112,8 +113,12 @@ export async function cmdGetRemote(plugin: MyPlugin, editor: Editor, view: Markd
 	}
 
 	// Gets tasks from clickup
-	const md = await TaskParser.getRemote(plugin.settings.list.selected, plugin.api);
-	editor.replaceSelection(md);
+	const [err, md] = await Errors.catchError(TaskParser.getRemote(plugin.settings.list.selected, plugin.api));
+	if (err) {
+		noticeErrors(err);
+	} else {
+		editor.replaceSelection(md);
+	}
 }
 
 export function cmdTokenize(plugin: MyPlugin, editor: Editor, view: MarkdownView) {

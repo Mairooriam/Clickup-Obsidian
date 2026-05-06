@@ -18,9 +18,9 @@ export function createApi(type: SupportedApiType, token: string): IApi {
 export class ApiService {
 	private api: IApi;
 
-	constructor(type: SupportedApiType, token: string, mapping: StatusMapping) {
+	constructor(type: SupportedApiType, token: string, mapping?: StatusMapping) {
 		this.api = createApi(type, token);
-		this.api.setStatusMapping(mapping);
+		if (mapping) this.api.setStatusMapping(mapping);
 	}
 
 	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
@@ -29,13 +29,10 @@ export class ApiService {
 		Logger.log("api", "Api statusMapping was set to: ", mapping);
 	}
 	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
-	public getMapping(): StatusMapping | undefined {
-		if (!this.api.statusMapping) {
-			return undefined
-		} else {
-			return this.api.statusMapping;
-		}
-	}
+	public getStatusMappingOrThrow(): StatusMapping {
+		if (!this.api.statusMapping) throw new Error("StatusMapping not set on ClickupApi");
+		return this.api.statusMapping;
+	};
 
 	async getTasks(listId: number, options: GetTasksOptions = { subtasks: true, include_closed: true }): Promise<Task[]> {
 		const [err, data] = await catchError(this.api.getTasks(listId, options));

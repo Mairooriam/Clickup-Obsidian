@@ -8,6 +8,7 @@ import { _Clickup_Folder, _Clickup_Folders } from "./types/getFolders";
 import { Folder, List, Space, Task, Team, TaskSchema, StatusMapping } from "../types";
 import { _Clickup_Teams } from "./types/getTeams";
 import { IApi } from "../IApi";
+import { AuthError } from "./../../utils/error.js";
 
 export interface HttpResponse<T> {
 	json: T;
@@ -75,8 +76,10 @@ export class ClickupApi implements IApi {
 		let json: T = null as T;
 		try { json = JSON.parse(text); } catch { json = null as T; }
 
-		if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${text}`);
-
+		if (!resp.ok) {
+			if (resp.status === 401) throw new AuthError(resp.status);
+			throw new Error(`HTTP ${resp.status}: ${text}`);
+		}
 		return { json, status: resp.status, text };
 	}
 
@@ -160,8 +163,6 @@ export class ClickupApi implements IApi {
 	public async updateTaskParent(task_id: string, newParent: string): Promise<any> {
 		return this.updateTask(task_id, { parent: newParent } as Task);
 	}
-
-
 
 	public async updateTask(task_id: string, task: Task): Promise<any> {
 		const mapping = this.getStatusMappingOrThrow();
