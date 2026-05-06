@@ -3,9 +3,10 @@ import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings
 import { EditorView, ViewUpdate } from "@codemirror/view";
 // Remember to rename these classes and interfaces!
 
-import { cmdAskAndSetClickupSettings, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor, cmdTokenize } from 'commands';
+import { cmdAskAndSetClickupSettings, cmdAuthenticate, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor, cmdTokenize } from 'commands';
 import { ApiService, TaskParser } from "taskParser";
 
+import { registerCommands } from 'commands/index';
 //TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 const DEFAULT_STATUS_MAPPING = {
 	completedStatus: "completed",
@@ -22,6 +23,7 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 		this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
 
+		registerCommands(this);
 
 		const slashFlagExtension = EditorView.updateListener.of((vu: ViewUpdate) => {
 			if (!vu.docChanged) return;
@@ -35,108 +37,6 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 		this.registerEditorExtension(slashFlagExtension);
-		this.addCommand({
-			id: 'get-remote',
-			name: 'get remote',
-			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const apiKey = this.settings.apiKey;
-				if (!apiKey) {
-					new Notice("API key not set. Please enter it in the plugin settings.");
-					return;
-				}
-				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
-
-				cmdGetRemote(this, editor, view);
-
-			}
-		});
-
-		this.addCommand({
-			id: 'tokenize',
-			name: 'tokenize selection',
-			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				cmdTokenize(this, editor, view);
-			}
-		});
-
-		this.addCommand({
-			id: 'check-diff',
-			name: 'DiffChecker',
-			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				if (!this.settings.apiKey) {
-					new Notice("API key not set. Please enter it in the plugin settings.");
-					return;
-				}
-				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
-				cmdCheckDiff(this, editor, view);
-			}
-		});
-		this.addCommand({
-			id: 'test-parse-md',
-			name: 'Clickup Remove color',
-			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				if (!this.settings.apiKey) {
-					new Notice("API key not set. Please enter it in the plugin settings.");
-					return;
-				}
-				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
-				cmdRemoveSelectionColor(this, editor, view);
-			}
-		});
-		this.addCommand({
-			id: 'set-settings',
-			name: 'Set settings',
-			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				if (!this.settings.apiKey) {
-					new Notice("API key not set. Please enter it in the plugin settings.");
-					return;
-				}
-				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
-				cmdAskAndSetClickupSettings(this, editor, view);
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'push-new',
-			name: 'push new',
-			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
-				this.settings.statusMapping = DEFAULT_STATUS_MAPPING;
-				if (!this.settings.apiKey) {
-					new Notice("API key not set. Please enter it in the plugin settings.");
-					return;
-				}
-				this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
-				console.log(this.api);
-
-
-				let selection = editor.getSelection();
-				const newMd = await TaskParser.processDiffToPost(selection, this.settings.list.selected, this.api);
-				if (newMd) {
-					editor.replaceSelection(newMd);
-				}
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));

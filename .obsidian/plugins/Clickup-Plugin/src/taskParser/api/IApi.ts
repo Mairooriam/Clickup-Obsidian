@@ -4,6 +4,7 @@ export interface IApi {
 	statusMapping?: StatusMapping;
 	setStatusMapping(mapping: StatusMapping): void;
 	getStatusMappingOrThrow(): StatusMapping;
+	getAuthorizedUser(): Promise<any>;
 	getTasks(listId: number, options?: any): Promise<Task[]>;
 	createTask(listId: number, task: any): Promise<any>;
 	getTeams(): Promise<Team[]>;

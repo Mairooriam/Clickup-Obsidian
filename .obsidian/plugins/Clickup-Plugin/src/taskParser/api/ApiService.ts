@@ -15,7 +15,7 @@ export function createApi(type: SupportedApiType, token: string): IApi {
 	throw new Error("Unknown API type");
 }
 
-export class ApiService {
+export class ApiService implements IApi {
 	private api: IApi;
 
 	constructor(type: SupportedApiType, token: string, mapping?: StatusMapping) {
@@ -28,6 +28,7 @@ export class ApiService {
 		this.api.setStatusMapping(mapping);
 		Logger.log("api", "Api statusMapping was set to: ", mapping);
 	}
+
 	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	public getStatusMappingOrThrow(): StatusMapping {
 		if (!this.api.statusMapping) throw new Error("StatusMapping not set on ClickupApi");
@@ -44,6 +45,12 @@ export class ApiService {
 	async createTask(listId: number, task: CreateTaskOptions): Promise<_Clickup_CreateTask> {
 		const [err, data] = await catchError(this.api.createTask(listId, task));
 		if (err) { Logger.error("api", "createTask failed", err.message); throw err; }
+		return data;
+	}
+
+	async getAuthorizedUser(): Promise<any> {
+		const [err, data] = await catchError(this.api.getAuthorizedUser());
+		if (err) { Logger.error("api", "getAuthorizedUser failed", err.message); throw err; }
 		return data;
 	}
 

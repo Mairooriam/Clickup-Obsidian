@@ -5,6 +5,7 @@ import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
 import { Color } from "./utils/colors.js";
 import { Logger } from "./utils/logger.js";
+import { ApiService } from "./api/ApiService.js";
 
 export class Stack<T> {
 	private stack: T[] = []
@@ -351,4 +352,3 @@ export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMat
 
 	return result;
 }
-

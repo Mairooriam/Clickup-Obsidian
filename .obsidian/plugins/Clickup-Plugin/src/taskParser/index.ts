@@ -220,6 +220,7 @@ async function processDiffToPost(md: string, targetId: number, api: ApiService):
 }
 
 export { ApiService } from "./api/ApiService.js";
+export * from "./api/types.js";
 export * as Errors from "./utils/error.js";
 /**
  * Clickup uses userdefined statuses. user needs to map status in order to work with 

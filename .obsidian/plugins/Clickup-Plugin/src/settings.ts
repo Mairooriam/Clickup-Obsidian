@@ -4,6 +4,8 @@ import { ClickupResponseSlim_GetTeams, } from "./taskParser/api/clickup/types/ge
 import { ClickupResponseSlim_GetSpaces } from "taskParser/api/clickup/types";
 import { StatusMapping } from "taskParser";
 
+export type AuthMode = "none" | "oauth" | "apikey";
+
 export interface TeamSettings {
 	data: ClickupResponseSlim_GetTeams;
 	selected: string;
@@ -31,6 +33,7 @@ export interface MyPluginSettings {
 	list: ListSettings;
 	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	statusMapping: StatusMapping;
+	authMode: AuthMode;
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
@@ -58,7 +61,8 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
 		completedStatus: "completed",
 		activeStatus: "not started",
 		availableStatuses: ["completed", "not started"]
-	}
+	},
+	authMode: "apikey"
 }
 
 export class SampleSettingTab extends PluginSettingTab {
