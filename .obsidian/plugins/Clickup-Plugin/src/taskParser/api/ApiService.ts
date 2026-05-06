@@ -2,7 +2,7 @@ import { ClickupApi } from "./clickup/ClickupApi";
 import { GetTasksOptions, CreateTaskOptions } from "./clickup/types";
 import { _Clickup_CreateTask } from "./clickup/types/createTask";
 import { Logger } from "../utils/logger";
-import { Folder, List, Space, StatusMapping, Task, Team } from "./types.js";
+import { Folder, List, Space, StatusMapping, Task, Team, User } from "./types.js";
 import { IApi } from "./IApi";
 import { catchError } from "../utils/error.js";
 
@@ -35,6 +35,11 @@ export class ApiService implements IApi {
 		return this.api.statusMapping;
 	};
 
+	public updateToken(token: string) {
+		this.api.updateToken(token);
+		Logger.log("api", "Api token updated.");
+	}
+
 	async getTasks(listId: number, options: GetTasksOptions = { subtasks: true, include_closed: true }): Promise<Task[]> {
 		const [err, data] = await catchError(this.api.getTasks(listId, options));
 		if (err) { Logger.error("api", "getTasks failed", err.message); throw err; }
@@ -48,7 +53,7 @@ export class ApiService implements IApi {
 		return data;
 	}
 
-	async getAuthorizedUser(): Promise<any> {
+	async getAuthorizedUser(): Promise<User> {
 		const [err, data] = await catchError(this.api.getAuthorizedUser());
 		if (err) { Logger.error("api", "getAuthorizedUser failed", err.message); throw err; }
 		return data;

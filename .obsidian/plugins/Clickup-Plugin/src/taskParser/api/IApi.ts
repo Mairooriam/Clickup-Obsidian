@@ -17,4 +17,5 @@ export interface IApi {
 	updateTaskParent(taskId: string, newParent: string): Promise<any>;
 	updateTask(taskId: string, task: Task): Promise<any>;
 	deleteTask(taskId: string): Promise<any>;
+	updateToken(token: string): void;
 }

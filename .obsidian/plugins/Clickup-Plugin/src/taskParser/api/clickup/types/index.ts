@@ -3,10 +3,11 @@ import { _Clickup_Space, _Clickup_Spaces } from "./getSpaces.js"
 import { _Clickup_Folder, _Clickup_Folders } from "./getFolders.js"
 import { _Clickup_Task, _Clickup_Tasks } from "./getTasks.js"
 import { _Clickup_List } from "./getLists.js"
-import { Folder, List, Space, Task, Team } from "../../types.js"
+import { Folder, List, Space, Task, Team, User } from "../../types.js"
 import { Colors } from "../../../utils/colors.js"
 import { StatusMapping } from "../../types.js"
 import { Status } from "./shared.js"
+import { _Clickup_User } from "./getAuthorizedUser.js"
 
 // TEAMS 
 export function ClickupTeamToTeam(team: _Clickup_Team): Team {
@@ -53,6 +54,14 @@ export function ClickupTaskToTask(task: _Clickup_Task): Task {
 	t.top_level_parent = task.top_level_parent ?? undefined;
 	t.completed = task.status?.type === 'closed';
 	return t;
+}
+
+export function ClickupUserToUser(user: _Clickup_User): User {
+	return {
+		id: Number(user.id),
+		username: user.username,
+		email: user.email
+	}
 }
 
 export interface GetTasksOptions {

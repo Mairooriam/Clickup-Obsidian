@@ -3,8 +3,7 @@ import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings
 import { EditorView, ViewUpdate } from "@codemirror/view";
 // Remember to rename these classes and interfaces!
 
-import { cmdAskAndSetClickupSettings, cmdAuthenticate, cmdCheckDiff, cmdGetRemote, cmdRemoveSelectionColor, cmdTokenize } from 'commands';
-import { ApiService, TaskParser } from "taskParser";
+import { ApiService } from "taskParser";
 
 import { registerCommands } from 'commands/index';
 //TODO: get rid of this? clickup api has status.type. closed and open for this purpose!

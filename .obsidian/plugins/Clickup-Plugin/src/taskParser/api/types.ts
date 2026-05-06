@@ -126,3 +126,13 @@ export class Task {
 export function tasksToString(tasks: Task[]): string {
 	return tasks.map(t => t.toString()).join("\n");
 }
+
+
+// USER
+export interface User {
+	id: number;
+	username: string,
+	email: string,
+}
+
+

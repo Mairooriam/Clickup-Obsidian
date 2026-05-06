@@ -1,14 +1,15 @@
 import { _Clickup_List, _Clickup_Lists } from "./types/getLists";
 import { _Clickup_Tasks } from "./types/getTasks";
-import { ClickupTaskToTask, ClickupListToList, GetTasksOptions, CreateTaskOptions } from "./types/index"
+import { ClickupTaskToTask, ClickupListToList, GetTasksOptions, CreateTaskOptions, ClickupUserToUser } from "./types/index"
 import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from "./types/index"
 import { _Clickup_CreateTask } from "./types/createTask";
 import { _Clickup_Space, _Clickup_Spaces } from "./types/getSpaces";
 import { _Clickup_Folder, _Clickup_Folders } from "./types/getFolders";
-import { Folder, List, Space, Task, Team, TaskSchema, StatusMapping } from "../types";
+import { Folder, List, Space, Task, Team, TaskSchema, StatusMapping, User } from "../types";
 import { _Clickup_Teams } from "./types/getTeams";
 import { IApi } from "../IApi";
 import { AuthError } from "./../../utils/error.js";
+import { _Clickup_AuthorizedUser, _Clickup_User } from "./types/getAuthorizedUser";
 
 export interface HttpResponse<T> {
 	json: T;
@@ -27,15 +28,14 @@ interface FetcherOptions {
 export class ClickupApi implements IApi {
 	private static instance: ClickupApi;
 	private readonly token: string;
-	private tempID: number;
 	private fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>;
 
 
 	private constructor(token: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>) {
 		this.token = token;
-		this.tempID = 0;
 		this.fetcherOverride = fetcherOverride;
 	}
+
 	//TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 	public statusMapping?: StatusMapping;
 	public setStatusMapping(mapping: StatusMapping) {
@@ -47,12 +47,15 @@ export class ClickupApi implements IApi {
 		if (!this.statusMapping) throw new Error("StatusMapping not set on ClickupApi");
 		return this.statusMapping;
 	};
-	public static getInstance(token?: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>): ClickupApi {
+	public static getInstance(token: string, fetcherOverride?: <T>(url: string, options?: any) => Promise<HttpResponse<T>>): ClickupApi {
 		if (!ClickupApi.instance) {
-			if (!token) throw new Error("ClickupApi requires a token on first initialization");
 			ClickupApi.instance = new ClickupApi(token, fetcherOverride);
 		}
 		return ClickupApi.instance;
+	}
+
+	public updateToken(token: string) {
+		(this as any).token = token;
 	}
 
 	private async fetcher<T>(url: string, options: FetcherOptions = {}): Promise<HttpResponse<T>> {
@@ -107,10 +110,9 @@ export class ClickupApi implements IApi {
 		return queryParams.toString();
 	}
 
-	public async getAuthorizedUser() {
-		const response = await this.fetcher(`user`);
-		const data = await response.json as any;
-		return data.user;
+	public async getAuthorizedUser(): Promise<User> {
+		const response = await this.fetcher<_Clickup_AuthorizedUser>(`user`);
+		return ClickupUserToUser(response.json.user);
 	}
 
 	public async getTeams(): Promise<Team[]> {
