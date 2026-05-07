@@ -2,7 +2,7 @@ import { join } from "path";
 import { ApiService } from "../api/ApiService";
 import { ClickupApi } from "../api/clickup/ClickupApi";
 import * as fs from "fs";
-import { TaskCache, tasksResolveParents } from "../core";
+import { TaskCache } from "../taskCache";
 import { Logger } from "../utils/logger";
 import { ClickupTaskToTask } from "../api/clickup/types/index";
 import { Task } from "../api/types";
@@ -83,45 +83,45 @@ test("ApiService.getTasks => taskCache", async () => {
 	expect(cacheTask3).toBeDefined();
 	expect(cacheTask3?.parent).toBe("86c9d98hm");
 });
-//TODO: make for the rest of api endpoints? not sure if i even need these. make tests against test endpoint?
-// also not sure if this is even testing anything usefull. look into this later
+
+
+//TODO: these should really be made proper. curretly not doing anything.
+const endpointResponses = {
+	getAuthorizedUser: { json: { user: { id: 1, username: "test", email: "test@test.com", color: "#000", profilePicture: null } }, status: 200, text: '{}' },
+	getTeams: { json: { teams: [] }, status: 200, text: '{"teams":[]}' },
+	getSpaces: { json: { spaces: [] }, status: 200, text: '{"spaces":[]}' },
+	getSpace: { json: {}, status: 200, text: '{}' },
+	getFolders: { json: { folders: [] }, status: 200, text: '{"folders":[]}' },
+	getFolder: { json: {}, status: 200, text: '{}' },
+	getLists: { json: { lists: [] }, status: 200, text: '{"lists":[]}' },
+	getList: { json: {}, status: 200, text: '{}' },
+	getTasks: { json: { tasks: [] }, status: 200, text: '{"tasks":[]}' },
+	createTask: { json: { id: "1", name: "test", url: "url", list: {}, date_created: "now" }, status: 200, text: '{}' },
+	updateTaskParent: { json: {}, status: 200, text: '{}' },
+	updateTask: { json: {}, status: 200, text: '{}' },
+	deleteTask: { json: {}, status: 200, text: '{}' },
+} as const;
+
+type EndpointName = keyof typeof endpointResponses;
+
+const dummyMapping = { completedStatus: "done", activeStatus: "open", availableStatuses: ["done", "open"] };
+const endpoints: { name: EndpointName; call: (api: any) => Promise<any> }[] = [
+	{ name: "getAuthorizedUser", call: (api: any) => api.getAuthorizedUser() },
+	{ name: "getTeams", call: (api: any) => api.getTeams() },
+	{ name: "getSpaces", call: (api: any) => api.getSpaces("teamid") },
+	{ name: "getSpace", call: (api: any) => api.getSpace("spaceid") },
+	{ name: "getFolders", call: (api: any) => api.getFolders("spaceid") },
+	{ name: "getFolder", call: (api: any) => api.getFolder("folderid") },
+	{ name: "getLists", call: (api: any) => api.getLists("folderid") },
+	{ name: "getList", call: (api: any) => api.getList(123) },
+	{ name: "getTasks", call: (api: any) => api.getTasks(123) },
+	{ name: "createTask", call: (api: any) => api.createTask(123, { name: "test" }) },
+	{ name: "updateTaskParent", call: (api: any) => { api.setStatusMapping(dummyMapping); return api.updateTaskParent("taskid", "parentid"); } },
+	{ name: "updateTask", call: (api: any) => { api.setStatusMapping(dummyMapping); return api.updateTask("taskid", { name: "test" }); } },
+	{ name: "deleteTask", call: (api: any) => api.deleteTask("taskid") },
+];
+
 describe("ApiService endpoints", () => {
-	//TODO: go trough responses so they are correct
-	const responses = {
-		getTeams: { json: { teams: [] }, status: 200, text: '{"teams":[]}' },
-		getSpaces: { json: { spaces: [] }, status: 200, text: '{"spaces":[]}' },
-		getSpace: { json: {}, status: 200, text: '{}' },
-		getFolders: { json: { folders: [] }, status: 200, text: '{"folders":[]}' },
-		getFolder: { json: {}, status: 200, text: '{}' },
-		getLists: { json: { lists: [] }, status: 200, text: '{"lists":[]}' },
-		getList: { json: {}, status: 200, text: '{}' },
-		getTasks: { json: { tasks: [] }, status: 200, text: '{"tasks":[]}' },
-		createTask: { json: { id: "1", name: "test", url: "url", list: {}, date_created: "now" }, status: 200, text: '{}' },
-		updateTaskParent: { json: {}, status: 200, text: '{}' },
-		updateTask: { json: {}, status: 200, text: '{}' },
-		deleteTask: { json: {}, status: 200, text: '{}' },
-	} as const;
-
-	type EndpointName = keyof typeof responses;
-
-	const dummyMapping = { completedStatus: "done", activeStatus: "open", availableStatuses: ["done", "open"] };
-	const endpoints: { name: EndpointName; call: (api: any) => Promise<any> }[] = [
-		{ name: "getTeams", call: (api: any) => api.getTeams() },
-		{ name: "getSpaces", call: (api: any) => api.getSpaces("teamid") },
-		{ name: "getSpace", call: (api: any) => api.getSpace("spaceid") },
-		{ name: "getFolders", call: (api: any) => api.getFolders("spaceid") },
-		{ name: "getFolder", call: (api: any) => api.getFolder("folderid") },
-		{ name: "getLists", call: (api: any) => api.getLists("folderid") },
-		{ name: "getList", call: (api: any) => api.getList(123) },
-		{ name: "getTasks", call: (api: any) => api.getTasks(123) },
-		{ name: "createTask", call: (api: any) => api.createTask(123, { name: "test" }) },
-		{ name: "updateTaskParent", call: (api: any) => { api.setStatusMapping(dummyMapping); return api.updateTaskParent("taskid", "parentid"); } },
-		{ name: "updateTask", call: (api: any) => { api.setStatusMapping(dummyMapping); return api.updateTask("taskid", { name: "test" }); } },
-		{ name: "deleteTask", call: (api: any) => api.deleteTask("taskid") },
-	];
-
-	const errorResponse = { json: { err: "fail" }, status: 401, text: '{"err":"fail"}' };
-
 	endpoints.forEach(({ name, call }) => {
 		test(`${name} forwards fetcher errors`, async () => {
 			const mockFetcher = jest.fn().mockRejectedValue(new Error("fail"));
@@ -131,7 +131,7 @@ describe("ApiService endpoints", () => {
 		});
 
 		test(`${name} works on success`, async () => {
-			const mockFetcher = jest.fn().mockResolvedValue(responses[name]);
+			const mockFetcher = jest.fn().mockResolvedValue(endpointResponses[name]);
 			ClickupApi.getInstance("FAKE_TOKEN", mockFetcher);
 			const api = new ApiService("clickup", "FAKE_TOKEN");
 			await expect(call(api)).resolves.not.toThrow();
@@ -143,7 +143,6 @@ test("All ApiService public methods are explicitly tested", () => {
 	const api = new ApiService("clickup", "FAKE_TOKEN");
 	const proto = Object.getPrototypeOf(api);
 
-	// List all public methods you expect to have
 	const expectedMethods = [
 		"getTasks",
 		"createTask",
@@ -157,10 +156,13 @@ test("All ApiService public methods are explicitly tested", () => {
 		"updateTaskParent",
 		"updateTask",
 		"deleteTask",
+		"getAuthorizedUser",
 		"setStatusMapping",
 		"getStatusMappingOrThrow",
-		// Add new methods here as you implement them
+		"updateToken",
 	];
+
+	const ignoreFromEndpoints = ["updateToken", "setStatusMapping", "getStatusMappingOrThrow"];
 
 	const actualMethods = Object.getOwnPropertyNames(proto)
 		.filter(name =>
@@ -170,12 +172,18 @@ test("All ApiService public methods are explicitly tested", () => {
 			!["showError", "getInstance"].includes(name)
 		);
 
-	// Check for missing or extra methods
 	const missing = expectedMethods.filter(m => !actualMethods.includes(m));
-	const extra = actualMethods.filter(m => !expectedMethods.includes(m));
+	const extra = actualMethods.filter(m => !expectedMethods.includes(m) && !ignoreFromEndpoints.includes(m));
 
 	expect(missing).toEqual([]);
 	expect(extra).toEqual([]);
+
+	const testedEndpointNames = endpoints.map(e => e.name as string);
+	const notInEndpoints = expectedMethods
+		.filter(m => !ignoreFromEndpoints.includes(m))
+		.filter(m => !testedEndpointNames.includes(m));
+
+	expect(notInEndpoints).toEqual([]);
 });
 it('Test that completed status gets applied correclty', () => {
 	const response = require('./getTasks-response.json');

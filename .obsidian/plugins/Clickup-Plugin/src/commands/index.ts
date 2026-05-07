@@ -1,14 +1,18 @@
 import MyPlugin from "main";
 import { cmdAskAndSetClickupSettings } from "./cmdAskAndSetSettings";
-import { Editor, MarkdownView } from "obsidian";
+import { Editor, MarkdownView, Notice } from "obsidian";
 import { cmdGetRemote } from "./cmdCheckRemote";
 import { cmdTokenize } from "./debugCommands";
 import { cmdCheckDiff } from "./cmdCheckDiff";
 import { cmdRemoveSelectionColor } from "./cmdRemoveSelectionColor";
 import { cmdAuthenticate } from "./cmdAuthenticate";
 import { pushNew } from "./cmdPushNew";
+import { registerSlashCommand } from "./SlashSuggestions";
 
 export function registerCommands(plugin: MyPlugin) {
+
+	registerSlashCommand(plugin);
+
 	plugin.addCommand({
 		id: 'get-remote',
 		name: 'get remote',

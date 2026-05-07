@@ -3,9 +3,11 @@ import { TaskSchema } from "./api/types.js";
 import { generateId } from "./utils/id.js";
 import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
-import { Color } from "./utils/colors.js";
+import { Color, Colors } from "./utils/colors.js";
 import { Logger } from "./utils/logger.js";
-import { ApiService } from "./api/ApiService.js";
+import { ApiService, CreateTaskOptions } from "./api/ApiService.js";
+import { catchError } from "./utils/error.js";
+import { TaskCache } from "./taskCache.js";
 
 export class Stack<T> {
 	private stack: T[] = []
@@ -34,6 +36,236 @@ export class Stack<T> {
 		this.stack = [];
 	}
 }
+/**
+ * Fetches all tasks (including subtasks) from a remote ClickUp list and returns them as a markdown string.
+ *
+ * @param {number} listId - The ClickUp list ID to fetch tasks from.
+ * @param {ApiService} api - The API service instance used to make requests.
+ * @returns {Promise<string>} A promise that resolves to the markdown string representation of the remote tasks.
+ *
+ * @remarks
+ * If the request fails, an empty string is returned and an error is logged.
+ */
+export async function getRemote(listId: number, api: ApiService): Promise<string> {
+	console.log(listId);
+	const [err, tasks] = await catchError(api.getTasks(listId));
+	if (err) {
+		Logger.error("taskParser.index", "getTasks failed with listId:", listId);
+		throw err;
+	}
+
+	if (!tasks.length) {
+		Logger.warn("core", "No tasks on remote.");
+		return "";
+	}
+
+	Logger.log("taskParser.index", "Tasks:", tasks);
+	let local = TaskCache.fromApi(tasks);
+	Logger.log("taskParser.index", "Local cache", local)
+	const cacheString = local.toString();
+	Logger.log("taskParser.index", "Cache as string:", cacheString.toString());
+	return local.toString();
+}
+
+export function isTask(line: string): Task | undefined {
+	const lexer = new Lexer(line);
+	const tokens = lexer.tokenize();
+	const parser = new Parser(tokens);
+	const tasks = parser.parseTasks();
+
+	if (!tasks) {
+		Logger.error("taskParser.index", `failed to parse tasks from line: \"${line} \" `);
+		return undefined;
+	}
+
+	if (tasks.length != 1) {
+		Logger.error("taskParser.index", `${line} contained more than one task.`);
+		return undefined;
+	}
+
+	return tasks[0];
+}
+
+/**
+ * Computes the diff between a local TaskCache and the remote ClickUp list,
+ * returns colored markdown.
+ *
+ * @param {string} localMd - Markdown of tasks
+ * @param {number} remoteId - The ClickUp list ID to fetch remote tasks from.
+ * @param {ApiService} api - The API service instance used to make requests.
+ * @returns {Promise<string>} A promise that resolves to the colored markdown string representing the diff.
+ *
+ * @remarks
+ * - New tasks are colored green.
+ * - Updated tasks are colored blue.
+ * - Deleted tasks are colored red.
+ * - All other tasks are colored white.
+ */
+export async function getColoredDiffMarkdown(localMd: string, remoteId: number, api: ApiService): Promise<string> {
+	const cache = TaskCache.fromMarkdown(localMd);
+	if (!cache) {
+		Logger.warn("taskParser.index", "created empty cache.");
+		return "";
+	}
+	Logger.log("taskParser.index", "Local cache: ", cache);
+
+	const [err, remote_tasks] = await catchError(api.getTasks(remoteId));
+	Logger.log("taskParser.index", "Remote Tasks: ", remote_tasks);
+	console.log(remote_tasks);
+	if (err) {
+		Logger.warn("taskParser.index", "Didn't get any tasks from remote. retunring emppty.");
+		return "";
+	}
+
+	let cacheRemote = TaskCache.fromApi(remote_tasks);
+	Logger.log("taskParser.index", "remote: ", cacheRemote);
+
+	let diff = cacheGenerateDiff(cache, cacheRemote);
+	Logger.log("taskParser.index", "diff: ", diff);
+	if (!diff.toDelete.length) {
+		Logger.log("taskParser.index", "No tasks to color to delete (RED)");
+	}
+	if (!diff.toPost.length) {
+		Logger.log("taskParser.index", "No tasks to color to post (GREEN)");
+	}
+	if (!diff.toPut.length) {
+		Logger.log("taskParser.index", "No Tasks to color to put (BLUE)");
+	}
+	cache.setColorForAll(Colors.White);
+
+	diff.toPost.forEach(task => cache.setColorForSubtree(task.id, Colors.Green));
+	diff.toPut.forEach(task => cache.setColorForSubtree(task.id, Colors.Blue));
+	diff.toDelete.forEach(task => cache.setColorForSubtree(task.id, Colors.Red));
+
+	Logger.log("taskParser.index", "diff:", diff);
+	return cache.toString();
+}
+
+/**
+ * Sets the color for all tasks in the given markdown string.
+ *
+ * @param {string} md - The markdown string representing the tasks.
+ * @param {Color} color - The color to apply to all tasks.
+ * @returns {string} The markdown string with all tasks colored.
+ *
+ * @remarks
+ * This function parses the markdown into a TaskCache, sets the color for all tasks,
+ * and returns the updated markdown string.
+ */
+export function setAllTasksColor(md: string, color: Color): string {
+	let cache = TaskCache.fromMarkdown(md);
+	cache.setColorForAll(color);
+	return cache.toString();
+}
+
+export async function processDiffToPost(md: string, targetId: number, api: ApiService): Promise<string> {
+	console.time("push-new:parse-local");
+	const local_cache = TaskCache.fromMarkdown(md);
+	console.timeEnd("push-new:parse-local");
+
+	console.time("push-new:get-remote");
+
+	const [err, remote_tasks] = await catchError(api.getTasks(targetId));
+	if (err) {
+		return "";
+	}
+
+	let remote = TaskCache.fromApi(remote_tasks);
+	console.timeEnd("push-new:get-remote");
+
+	console.time("push-new:diff");
+	let diff = cacheGenerateDiff(local_cache, remote);
+	console.timeEnd("push-new:diff");
+	// ----------------- TO POST --------------------
+	// NOTE: they wont have parent and it wont wait for response
+	// to get it done faster
+	if (diff.toPost.length) {
+		const idMap = new Map<string, string>();
+		console.time("push-new:create-remote");
+		await Promise.all(diff.toPost.map(async t => {
+			const label = `push-new:create-task:${t.name || ''}:${t.id}`;
+			console.time(label);
+			const op: CreateTaskOptions = {
+				name: t.name,
+				parent: null,
+			};
+			const [err, response] = await catchError(api.createTask(targetId, op));
+			if (!err) {
+				console.timeEnd(label);
+				idMap.set(String(t.id), String(response.id));
+			} else {
+				Logger.error("taskParser.index", "Failed to fetch create task. skipping.", t.toString());
+			}
+		}));
+		console.timeEnd("push-new:create-remote");
+
+		// Update the tasks parents to match the previous step 
+		console.time("push-new:update-remote");
+		const updatePromises = diff.toPost
+			.filter(t => t.parent)
+			.map(async t => {
+				const realId = idMap.get(String(t.id));
+				const realParentId = idMap.get(String(t.parent));
+
+				if (realId && realParentId) {
+					//TODO: handle response?
+					const [err, response] = await catchError(api.updateTaskParent(realId, realParentId));
+					if (err) {
+						Logger.error("taskParser.index", "Failed to update task parent. Skipping.", t.toString());
+					}
+				}
+			});
+		await Promise.all(updatePromises);
+		console.timeEnd("push-new:update-remote");
+
+		console.time("push-new:update-local-ids");
+		for (const [localId, remoteId] of idMap.entries()) {
+			local_cache.updateNodeId(localId, remoteId);
+		}
+		console.timeEnd("push-new:update-local-ids");
+	} else {
+		Logger.log("core", "Nothing to post in local.");
+	}
+
+	// ----------------- TO PUT --------------------
+	if (diff.toPut.length) {
+
+		console.time("push-new:Put");
+		await Promise.all(diff.toPut.map(async t => {
+			const label = `push-new:Put:${t.name || ''}:${t.id}`;
+			console.time(label);
+			//TODO: handle response?
+			const [err, response] = await catchError(api.updateTask(t.id, t));
+			if (err) {
+				Logger.error("taskParser.index", "Failed to update task. Skipping.", t.toString());
+			}
+			console.timeEnd(label);
+		}));
+		console.timeEnd("push-new:Put");
+	} else {
+		Logger.log("core", "Nothing to put in local.");
+	}
+
+	// ----------------- TO DELETE --------------------
+	if (diff.toDelete.length) {
+		console.time("push-new:Delete");
+		await Promise.all(diff.toDelete.map(async t => {
+			const label = `push-new:DeleteOne:${t.name || ''}:${t.id}`;
+			console.time(label);
+			const [err, response] = await catchError(api.deleteTask(t.id));
+			if (err) {
+				Logger.error("taskParser.index", "Failed to deleteTask. Skipping", t.toString());
+			}
+			console.timeEnd(label);
+			local_cache.removeNode(t.id);
+		}));
+		console.timeEnd("push-new:Delete");
+	} else {
+		Logger.log("core", "Nothing to delete in local.");
+	}
+
+	return local_cache.toString();
+}
 
 
 // tells whether two tasks are the same
@@ -44,249 +276,6 @@ export function taskMatch(t1: Task, t2: Task): boolean {
 	return true;
 }
 
-export function tasksResolveParents(tasks: Task[], idGenerator: () => string = generateId): void {
-	// Assign placeholder IDs if missing
-	for (const task of tasks) {
-		if (!task) continue;
-		if (!task.id) {
-			task.id = idGenerator();
-		}
-	}
-
-	// Assign parent IDs using a stack
-	const stack = new Stack<Task>();
-	for (const task of tasks) {
-		while (stack.top() && stack.top()!.level >= task.level) {
-			stack.pop();
-		}
-		if (!stack.empty()) {
-			task.parent = stack.top()!.id;
-		} else {
-			task.parent = undefined;
-		}
-		stack.push(task);
-	}
-}
-
-function recalculateLevels(cache: TaskCache): void {
-	const visit = (task: Task, level: number): void => {
-		task.level = level;
-		cache.children.get(task.id)?.forEach(child => visit(child, level + 1));
-	};
-	cache.roots.forEach(root => visit(root, 0));
-}
-
-export class TaskCache {
-	map: Map<string, Task> = new Map();
-	children: Map<string, Task[]> = new Map();
-	roots: Task[] = [];
-
-	constructor() {
-		this.roots = [];
-		this.map = new Map();
-		this.children = new Map();
-	}
-	/**
-	 * Creates a deep copy of this TaskCache.
-	 * @returns {TaskCache} A new TaskCache instance with the same data.
-	 */
-	clone(): TaskCache {
-		// Use toString and fromMarkdown for a deep copy.
-		return TaskCache.fromMarkdown(this.toString());
-	}
-
-	/**
-	 * Build a TaskCache tree from a flat array of tasks.
-	 * 
-	 * @param tasks Flat array of Task objects.
-	 * @param resolveParents If true, parent relationships are recalculated using `tasksResolveParents` (for tasks parsed from markdown, where parent/level must be inferred).
-	 *                       If false, parent relationships are assumed to be already set (e.g., tasks from API).
-	 * @returns TaskCache instance representing the task tree.
-	 */
-	private static fromTasks(tasks: Task[], resolveParents = true): TaskCache {
-		//TODO: add validation on calls in public layer for this
-		tasks.forEach((task, idx) => {
-			try {
-				TaskSchema.parse(task);
-			} catch (e) {
-				const errMsg = e instanceof Error ? e.message : String(e);
-				throw new Error(`Task validation failed at index ${idx} (id: ${task.id ?? 'unknown'}): ${errMsg}`);
-			}
-		});
-		if (resolveParents) {
-			tasksResolveParents(tasks);
-		}
-		const tree = new TaskCache();
-		const allIds = new Set(tasks.map(t => t.id));
-		const dangling: Task[] = [];
-
-		for (const task of tasks) {
-			const id = task.id;
-			if (id) tree.map.set(id, task);
-		}
-
-		for (const task of tasks) {
-			const parentId = task.parent;
-			if (!parentId || parentId === "null") {
-				tree.roots.push(task);
-			} else {
-				if (!allIds.has(parentId)) {
-					dangling.push(task);
-				}
-				if (!tree.children.has(parentId)) tree.children.set(parentId, []);
-				tree.children.get(parentId)!.push(task);
-			}
-		}
-
-		if (tree.roots.length === 0 && tasks.length > 0) {
-			Logger.warn(
-				"core",
-				"API returned tasks but none are roots (all have a parent). This may indicate a data or conversion issue. or sometimes clickup leaves hanging \"ghost\" tasks",
-				{ tasks: tasks.map(t => ({ id: t.id, name: t.name, parent: t.parent })) }
-			);
-		}
-
-		if (dangling.length > 0) {
-			Logger.warn(
-				"core",
-				"Detected dangling tasks: these have a parent that does not exist in the task list.",
-				{ dangling: dangling.map(t => ({ id: t.id, name: t.name, parent: t.parent })) }
-			);
-		}
-
-		recalculateLevels(tree);
-		return tree;
-	}
-
-	/**
-	 * Create a TaskCache from an array of tasks returned by the API.
-	 *
-	 * @param tasks Flat array of Task objects from the API. These tasks are expected to already have correct `parent` fields set.
-	 * @returns TaskCache instance representing the task tree.
-	 *
-	 * This method does NOT recalculate parent relationships. Use this for tasks loaded from the API, where parent/level information is already present.
-	 */
-	static fromApi(tasks: Task[]): TaskCache {
-		return this.fromTasks(tasks, false);
-	}
-
-	/**
-	 * Create a TaskCache from a markdown string.
-	 *
-	 * @param md Markdown string containing task definitions.
-	 * @returns TaskCache instance representing the task tree.
-	 *
-	 * This method parses the markdown, infers parent relationships and levels, and builds the task tree accordingly.
-	 */
-	static fromMarkdown(md: string): TaskCache {
-		const lexer = new Lexer(md);
-		const parser = new Parser(lexer.tokenize());
-		const tasks = parser.parseTasks();
-		return this.fromTasks(tasks, true);
-	}
-
-	addNode(task: Task): boolean {
-		if (this.map.has(task.id)) return false;
-
-		const parentId = task.parent;
-		if (!parentId || parentId === "null") {
-			task.level = 0;
-			this.roots.push(task);
-		} else {
-			const parent = this.map.get(parentId);
-			if (!parent) return false;
-			task.level = parent.level + 1;
-			if (!this.children.has(parentId)) this.children.set(parentId, []);
-			this.children.get(parentId)!.push(task);
-		}
-
-		this.map.set(task.id, task);
-		return true;
-	}
-
-	removeNode(id: string): boolean {
-		const node = this.map.get(id);
-		if (!node) return false;
-
-		const parentId = node.parent;
-
-		const nodeChildren = this.children.get(id) ?? [];
-
-		// reparent children
-		for (const child of nodeChildren) {
-			if (!parentId || parentId === "null") {
-				child.parent = "null";
-				child.level = 0;
-				this.roots.push(child);
-			} else {
-				child.parent = parentId;
-				child.level = node.level;
-				if (!this.children.has(parentId)) this.children.set(parentId, []);
-				this.children.get(parentId)!.push(child);
-			}
-		}
-
-		// remove from parent's children
-		if (!parentId || parentId === "null") {
-			this.roots = this.roots.filter(r => r !== node);
-		} else {
-			const siblings = this.children.get(parentId) ?? [];
-			this.children.set(parentId, siblings.filter(c => c !== node));
-		}
-
-		this.children.delete(id);
-		this.map.delete(id);
-		recalculateLevels(this);
-		return true;
-	}
-	updateNodeId(oldKey: string, newKey: string) {
-		const node = this.map.get(oldKey);
-		if (!node) {
-			Logger.log("core", `${oldKey} is not in the map.`);
-		}
-
-		if (!node?.id) {
-			throw new Error("node doesn't have id. shouldn't be possible in correct usage");
-		}
-
-		let children = this.children.get(node.id);
-		children?.forEach((child) => {
-			child.parent = newKey;
-		})
-		if (children) {
-			this.children.delete(oldKey);
-			this.children.set(newKey, children);
-		}
-
-		node.id = newKey;
-		this.map.delete(oldKey);
-		this.map.set(newKey, node);
-
-	}
-
-	toString(): string {
-		const lines: string[] = [];
-		const visit = (task: Task): void => {
-			lines.push(task.toString());
-			const kids = this.children.get(task.id ?? "") ?? [];
-			kids.forEach(visit);
-		};
-		this.roots.forEach(visit);
-		return lines.join("\n");
-	}
-
-	setColorForAll(color: Color): void {
-		this.map.forEach(task => task.color = color);
-	}
-
-	setColorForSubtree(id: string, color: Color): void {
-		const task = this.map.get(id);
-		if (!task) return;
-		task.color = color;
-		this.children.get(id)?.forEach(child => this.setColorForSubtree(child.id, color));
-	}
-}
-
 //TODO: rework to use maps?
 export interface cacheMatchResult {
 	match: boolean;
@@ -295,7 +284,7 @@ export interface cacheMatchResult {
 	toDelete: Task[]; // remote only — NOTE: just placeholder for now
 }
 
-export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResult {
+function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResult {
 	const result: cacheMatchResult = { match: true, toPost: [], toPut: [], toDelete: [] };
 
 	const compareNode = (localTask: Task): void => {
@@ -352,3 +341,17 @@ export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMat
 
 	return result;
 }
+
+
+
+export function tokenizeAndLog(md: string) {
+	console.log(md);
+	const lexer = new Lexer(md);
+	const tokens = lexer.tokenize();
+	console.log(tokens);
+	const parser = new Parser(tokens);
+	const tasks = parser.parseTasks();
+	console.log(tasks);
+}
+
+
