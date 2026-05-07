@@ -57,6 +57,11 @@ function makeSlashItems(app: App): SlashItem[] {
 		}),
 		slashCmd("Set due date", (editor, pos) => {
 			const line = editor.getLine(pos.line);
+			const task = TaskParser.isTask(line);
+			if (!task) {
+				console.log("Current line is not valid task. cannot set date");
+			}
+
 			const existing = line.match(/\[due:([^\]]+)\]/)?.[1] ?? "";
 			openDatePicker(app, existing, (date) => {
 				const token = `[due:${date}]`;

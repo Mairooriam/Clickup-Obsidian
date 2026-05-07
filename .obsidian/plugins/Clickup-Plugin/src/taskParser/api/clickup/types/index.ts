@@ -51,8 +51,10 @@ export function ClickupTaskToTask(task: _Clickup_Task): Task {
 	// Set completed based on status type
 	const t = new Task(task.id, 0, task.name, Colors.default, false, false);
 	t.parent = task.parent ?? undefined;
-	t.top_level_parent = task.top_level_parent ?? undefined;
+	t.topLevelParent = task.top_level_parent ?? undefined;
 	t.completed = task.status?.type === 'closed';
+	t.startDate = Number(task.start_date);
+	t.dueDate = Number(task.due_date);
 	return t;
 }
 

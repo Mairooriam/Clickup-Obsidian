@@ -18,6 +18,7 @@ export function createApi(type: SupportedApiType, token: string): IApi {
 export class ApiService implements IApi {
 	private api: IApi;
 
+	//TODO: make mapping needed to not have mistakes when u forget to supply it.
 	constructor(type: SupportedApiType, token: string, mapping?: StatusMapping) {
 		this.api = createApi(type, token);
 		if (mapping) this.api.setStatusMapping(mapping);

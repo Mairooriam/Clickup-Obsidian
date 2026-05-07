@@ -92,7 +92,10 @@ export class Task {
 	color: Color; // used in display. not in clickup
 	completed: boolean;
 	parent?: string;
-	top_level_parent?: string;
+	topLevelParent?: string;
+	startDate: number;
+	dueDate: number;
+
 
 	constructor(id: string, level: number, name: string, color: Color = Colors.default, striketrough: boolean, completed: boolean) {
 		this.id = id;
@@ -104,18 +107,28 @@ export class Task {
 	}
 
 	toString(): string {
+		//TODO: for now flags toString this way. in future list members that are flags and
+		// iterate trough them? maybe serialize some info to yaml? idk?
 		const indent = "\t".repeat(this.level);
-		const parent = this.parent ? ` [parent:${this.parent}]` : "";
 		let content = `${indent} - `;
-		if (!this.completed) {
-			content += "[ ] ";
-		} else {
-			content += "[x] ";
+		content += this.completed ? "[x] " : "[ ] ";
+		content += `${this.name}`;
+
+		// Dynamic field serialization
+		const fields: Record<string, any> = {
+			id: this.id,
+			parent: this.parent,
+			//		topLevelParent: this.topLevelParent,
+			due: this.dueDate,
+			start: this.startDate,
+		};
+		for (const [key, value] of Object.entries(fields)) {
+			if (value !== undefined && value !== null && value !== "" && value !== 0) {
+				content += ` [${key}:${value}]`;
+			}
 		}
-		content += `${this.name} [id: ${this.id}]${parent} `;
 
 		const displayContent = this.striketrough ? `~~${content} ~~` : content;
-
 		if (this.color) {
 			return `<span style = "color:${this.color};white-space:pre" > ${displayContent} </span>`;
 		}

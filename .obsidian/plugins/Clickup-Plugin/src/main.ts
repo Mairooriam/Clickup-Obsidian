@@ -19,7 +19,8 @@ export default class MyPlugin extends Plugin {
 	static useColor: boolean = true;
 	async onload() {
 		await this.loadSettings();
-		this.api = new ApiService("clickup", this.settings.apiKey, this.settings.statusMapping || DEFAULT_STATUS_MAPPING);
+		//TODO: for now resets to defualt mapping on load
+		this.api = new ApiService("clickup", this.settings.apiKey, DEFAULT_STATUS_MAPPING);
 
 		registerCommands(this);
 
