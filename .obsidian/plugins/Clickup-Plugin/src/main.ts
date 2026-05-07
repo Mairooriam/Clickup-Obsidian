@@ -5,6 +5,7 @@ import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings
 import { ApiService } from "taskParser";
 
 import { registerCommands } from 'commands/index';
+import { openFlatpickrTest } from './ui/FlatpickrTest';
 //TODO: get rid of this? clickup api has status.type. closed and open for this purpose!
 const DEFAULT_STATUS_MAPPING = {
 	completedStatus: "completed",
@@ -23,6 +24,12 @@ export default class MyPlugin extends Plugin {
 		this.api = new ApiService("clickup", this.settings.apiKey, DEFAULT_STATUS_MAPPING);
 
 		registerCommands(this);
+
+		this.addCommand({
+			id: 'flatpickr-hello-world',
+			name: 'Flatpickr: Hello World',
+			editorCallback: (editor, view: MarkdownView) => openFlatpickrTest(this.app, view),
+		});
 
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
