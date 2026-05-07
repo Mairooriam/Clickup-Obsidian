@@ -1,24 +1,19 @@
 import { App, MarkdownView } from "obsidian";
 import flatpickr from "flatpickr";
 
-export function openFlatpickrTest(app: App, view: MarkdownView) {
-	let top = "50%";
-	let left = "50%";
+export type FlatpickrMode = "single" | "range";
 
-	if (view) {
-		const cursorEl = view.containerEl.querySelector<HTMLElement>(".cm-cursor");
-		if (cursorEl) {
-			const rect = cursorEl.getBoundingClientRect();
-			top = `${rect.bottom}px`;
-			left = `${rect.left}px`;
-		}
-	}
-
+export function openFlatpickrTest(
+	app: App,
+	view: MarkdownView,
+	mode: FlatpickrMode = "single",
+	onSelect?: (dates: Date[], dateStr: string) => void,
+) {
 	const input = document.body.createEl("input");
 	Object.assign(input.style, {
 		position: "fixed",
-		top,
-		left,
+		top: "50%",
+		left: "50%",
 		width: "0",
 		height: "0",
 		opacity: "0",
@@ -27,7 +22,15 @@ export function openFlatpickrTest(app: App, view: MarkdownView) {
 	});
 
 	const picker = flatpickr(input, {
-		onChange: (_, dateStr) => console.log("[flatpickr hello world]", dateStr),
+		mode,
+		weekNumbers: true,
+		onChange: (dates: Date[], dateStr: string) => {
+			const done = mode === "single" ? dates.length === 1 : dates.length === 2;
+			if (done) {
+				console.log("[flatpickr]", dateStr, dates);
+				onSelect?.(dates, dateStr);
+			}
+		},
 		onClose: () => input.remove(),
 	});
 	picker.open();

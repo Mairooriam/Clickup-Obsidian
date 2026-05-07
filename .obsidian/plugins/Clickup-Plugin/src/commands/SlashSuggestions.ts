@@ -1,6 +1,6 @@
 import MyPlugin from "main";
-import { App, Editor, EditorPosition, EditorSuggest, EditorSuggestContext, EditorSuggestTriggerInfo, TFile } from "obsidian";
-import { openDatePicker } from "../ui/DatePickerModal";
+import { App, Editor, EditorPosition, EditorSuggest, EditorSuggestContext, EditorSuggestTriggerInfo, MarkdownView, TFile } from "obsidian";
+import { openFlatpickrTest } from "../ui/FlatpickrTest";
 import { Task, TaskParser } from "taskParser";
 
 type SlashItem = { label: string; run: (editor: Editor, start: EditorPosition) => void };
@@ -62,14 +62,16 @@ function makeSlashItems(app: App): SlashItem[] {
 				console.log("Current line is not valid task. cannot set date");
 			}
 
-			const existing = line.match(/\[due:([^\]]+)\]/)?.[1] ?? "";
-			openDatePicker(app, existing, (date) => {
+			const view = app.workspace.getActiveViewOfType(MarkdownView);
+			if (!view) return;
+			openFlatpickrTest(app, view, "single", (dates) => {
+				const date = dates[0].getTime();
 				const token = `[due:${date}]`;
-				const updated = date
-					? (line.includes("[due:") ? line.replace(/\[due:[^\]]+\]/, token) : `${line} ${token}`)
-					: line.replace(/\s*\[due:[^\]]+\]/, "");
+				const updated = line.includes("[due:")
+					? line.replace(/\[due:[^\]]+\]/, token)
+					: `${line} ${token}`;
 				editor.setLine(pos.line, updated);
-				console.log("[SlashCmd] due date set:", date || "(removed)");
+				console.log("[SlashCmd] due date set:", date);
 			});
 		}),
 	];
