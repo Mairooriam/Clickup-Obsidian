@@ -6,6 +6,7 @@ import { TaskCache } from "../taskCache";
 import { Logger } from "../utils/logger";
 import { ClickupTaskToTask } from "../api/clickup/types/index";
 import { Task } from "../api/types";
+import { parseTask } from "../core";
 
 Logger.setLevel("parser", "warn");
 beforeEach(() => {
@@ -208,4 +209,18 @@ it('task cache simple task parse', () => {
 		expect(t.completed).toBe(false);
 	})
 });
+
+it('Parses one task not more or less', () => {
+	//TODO: make "set all levels off" can't be bothered right now.
+	//this doesnt disable the needed warnings etc. for some reason
+	Logger.setLevel("core", "none");
+	let input = '- [x] Task 1 [id:abc123]';
+	let res = parseTask(input);
+	expect(res).toBeDefined();
+
+	let input2 = '- [x] Task 1 [id:abc123]\n- [x] Task 1 [id:abc123]';
+	res = parseTask(input2)
+	expect(res).toBeUndefined();
+	Logger.setLevel("core", "log");
+})
 

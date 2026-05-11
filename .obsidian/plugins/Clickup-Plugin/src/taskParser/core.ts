@@ -343,6 +343,19 @@ function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResul
 }
 
 
+export function parseTask(md: string): Task | undefined {
+	const lexer = new Lexer(md);
+	const parser = new Parser(lexer.tokenize());
+	const tasks = parser.parseTasks();
+	if (tasks.length !== 1) {
+		Logger.error("taskParser.index", "Parsing task found more than 1 task.");
+	} else {
+		return tasks[0]!;
+	}
+	return undefined;
+}
+
+
 
 export function tokenizeAndLog(md: string) {
 	console.log(md);

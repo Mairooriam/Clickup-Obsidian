@@ -1,7 +1,7 @@
 
 import { ApiService } from "./api/ApiService.js";
 import { Colors } from "./utils/colors.js";
-import { getRemote, getColoredDiffMarkdown, setAllTasksColor, processDiffToPost, tokenizeAndLog, isTask } from "./core.js";
+import { getRemote, getColoredDiffMarkdown, setAllTasksColor, processDiffToPost, tokenizeAndLog, isTask, parseTask } from "./core.js";
 import { TaskCache } from "./taskCache.js";
 
 
@@ -30,6 +30,7 @@ export type { StatusMapping } from "./api/types.js";
  * Main interface 
  * */
 export const TaskParser = {
+	parseTask,
 	isTask,
 	getRemote,
 	getColoredDiffMarkdown,

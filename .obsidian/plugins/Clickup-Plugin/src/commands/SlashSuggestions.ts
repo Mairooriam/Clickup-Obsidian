@@ -2,6 +2,7 @@ import MyPlugin from "main";
 import { App, Editor, EditorPosition, EditorSuggest, EditorSuggestContext, EditorSuggestTriggerInfo, MarkdownView, TFile } from "obsidian";
 import { openFlatpickrTest } from "../ui/FlatpickrTest";
 import { Task, TaskParser } from "taskParser";
+import { Logger } from "taskParser/utils/logger";
 
 type SlashItem = { label: string; run: (editor: Editor, start: EditorPosition) => void };
 
@@ -57,21 +58,25 @@ function makeSlashItems(app: App): SlashItem[] {
 		}),
 		slashCmd("Set due date", (editor, pos) => {
 			const line = editor.getLine(pos.line);
-			const task = TaskParser.isTask(line);
+			const task = TaskParser.parseTask(line);
 			if (!task) {
 				console.log("Current line is not valid task. cannot set date");
+				return;
 			}
 
 			const view = app.workspace.getActiveViewOfType(MarkdownView);
 			if (!view) return;
 			openFlatpickrTest(app, view, "single", (dates) => {
-				const date = dates[0].getTime();
-				const token = `[due:${date}]`;
-				const updated = line.includes("[due:")
-					? line.replace(/\[due:[^\]]+\]/, token)
-					: `${line} ${token}`;
-				editor.setLine(pos.line, updated);
-				console.log("[SlashCmd] due date set:", date);
+				if (!dates[0]) {
+					console.log("Getting date wasn't succesfull.");
+					return;
+				}
+				   const date = dates[0].getTime();
+				   task.dueDate = date;
+				   const lineNum = pos.line;
+				   const lineText = editor.getLine(lineNum);
+				   editor.replaceRange(task.toString(), { line: lineNum, ch: 0 }, { line: lineNum, ch: lineText.length });
+				   console.log("[SlashCmd] due date set:", date);
 			});
 		}),
 	];
