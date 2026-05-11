@@ -1,9 +1,8 @@
+//TODO: rework logger this is shit.
 function snapshotArgs(args: unknown[]): string {
 	return args.map(arg => {
 		try {
-			return typeof arg === "string"
-				? arg
-				: JSON.stringify(arg, getCircularReplacer(), 2);
+			return JSON.stringify(arg, getCircularReplacer(), 2);
 		} catch {
 			return "[Unserializable object]";
 		}
@@ -16,6 +15,12 @@ function getCircularReplacer() {
 		if (typeof value === "object" && value !== null) {
 			if (seen.has(value as object)) return "[Circular]";
 			seen.add(value as object);
+			if (value instanceof Map) {
+				return Object.fromEntries(value);
+			}
+			if (value instanceof Set) {
+				return Array.from(value);
+			}
 		}
 		return value;
 	};

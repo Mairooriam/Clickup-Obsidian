@@ -1,4 +1,4 @@
-import { Task, TaskSchema } from "./api/types";
+import { Task, TaskSchema, taskToString } from "./api/types";
 import { Stack } from "./core";
 import { Lexer } from "./lexer";
 import { Parser } from "./parser";
@@ -228,7 +228,7 @@ export class TaskCache {
 	toString(): string {
 		const lines: string[] = [];
 		const visit = (task: Task): void => {
-			lines.push(task.toString());
+			lines.push(taskToString(task));
 			const kids = this.children.get(task.id ?? "") ?? [];
 			kids.forEach(visit);
 		};

@@ -1,14 +1,21 @@
 import type { Token } from "./lexer.js"
 import { TokenType } from "./lexer.js"
-import { Task } from "./api/types.js"
+import { createTask, Task, TaskFlagsSchema } from "./api/types.js"
 import { generateId } from "./utils/id.js";
 
 import { Color, Colors, toColor } from "./utils/colors.js";
 import { Logger } from "./utils/logger.js";
 
-function taskFromToken(id: string, level: number, name: string, color: Color, striketrough: boolean, completed: boolean, flags?: Record<string, any>): Task {
-	const task = new Task(id, level, name, color, striketrough, completed);
-	if (flags) Object.assign(task, flags);
+function taskFromToken(id: string, level: number, name: string, color: Color, striketrough: boolean, completed: boolean, flags?: Record<string, string>): Task {
+	const task = createTask(id, level, name, striketrough, completed, color);
+	if (flags) {
+		const parsed = TaskFlagsSchema.safeParse(flags);
+		if (parsed.success) {
+			Object.assign(task, parsed.data);
+		} else {
+			Logger.warn("parser", "Failed to parse task flags", flags, parsed.error.issues);
+		}
+	}
 	return task;
 }
 

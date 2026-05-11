@@ -5,8 +5,8 @@ import * as fs from "fs";
 import { TaskCache } from "../taskCache";
 import { Logger } from "../utils/logger";
 import { ClickupTaskToTask } from "../api/clickup/types/index";
-import { Task } from "../api/types";
-import { parseTask } from "../core";
+import { Task, taskMatch } from "../api/types";
+import { cacheGenerateDiff, parseTask } from "../core";
 
 Logger.setLevel("parser", "warn");
 beforeEach(() => {
@@ -223,4 +223,49 @@ it('Parses one task not more or less', () => {
 	expect(res).toBeUndefined();
 	Logger.setLevel("core", "log");
 })
+
+it('taskMatch: local dueDate=null vs remote dueDate set → not matching → diff toPut', () => {
+	const localTask1: Task = {
+		id: "86c9pffwv",
+		level: 0,
+		name: "test2",
+		color: "",
+		striketrough: false,
+		completed: false,
+		startDate: 0,
+		dueDate: 0,
+	};
+	const localTask2: Task = {
+		id: "86c9pffxm",
+		level: 1,
+		name: "test",
+		color: "",
+		striketrough: false,
+		completed: false,
+		startDate: null,
+		dueDate: null,
+		parent: "86c9pffwv",
+	};
+
+	// Remote: same tasks but task2 has a due date set (as returned by ClickUp API after conversion)
+	const remoteTask1: Task = { ...localTask1, startDate: null, dueDate: null };
+	const remoteTask2: Task = { ...localTask2, dueDate: 1778619600000 };
+
+	// task1: local dueDate=0 normalizes to null, remote dueDate=null → match
+	expect(taskMatch(localTask1, remoteTask1)).toBe(true);
+
+	// task2: local dueDate=null, remote dueDate=1778619600000 → no match → should go to toPut
+	expect(taskMatch(localTask2, remoteTask2)).toBe(false);
+
+	// Verify via full diff
+	const localCache = TaskCache.fromApi([localTask1, localTask2]);
+	const remoteCache = TaskCache.fromApi([remoteTask1, remoteTask2]);
+
+	const diff = cacheGenerateDiff(localCache, remoteCache);
+
+	expect(diff.toPost).toHaveLength(0);   // no new tasks
+	expect(diff.toDelete).toHaveLength(0); // no deleted tasks
+	expect(diff.toPut).toHaveLength(1);    // task2 dueDate changed → PUT
+	expect(diff.toPut[0]!.id).toBe("86c9pffxm");
+});
 

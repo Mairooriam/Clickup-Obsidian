@@ -3,7 +3,7 @@ import { _Clickup_Space, _Clickup_Spaces } from "./getSpaces.js"
 import { _Clickup_Folder, _Clickup_Folders } from "./getFolders.js"
 import { _Clickup_Task, _Clickup_Tasks } from "./getTasks.js"
 import { _Clickup_List } from "./getLists.js"
-import { Folder, List, Space, Task, Team, User } from "../../types.js"
+import { createTask, Folder, List, Space, Task, Team, User } from "../../types.js"
 import { Colors } from "../../../utils/colors.js"
 import { StatusMapping } from "../../types.js"
 import { Status } from "./shared.js"
@@ -49,7 +49,8 @@ export function ClickupListToList(list: _Clickup_List): List {
 
 export function ClickupTaskToTask(task: _Clickup_Task): Task {
 	// Set completed based on status type
-	const t = new Task(task.id, 0, task.name, Colors.default, false, false);
+	const t = createTask(task.id, 0, task.name, false, false, Colors.default);
+
 	t.parent = task.parent ?? undefined;
 	t.topLevelParent = task.top_level_parent ?? undefined;
 	t.completed = task.status?.type === 'closed';

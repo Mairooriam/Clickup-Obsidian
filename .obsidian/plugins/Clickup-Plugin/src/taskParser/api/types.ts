@@ -16,16 +16,68 @@ export interface StatusMapping {
 	availableStatuses: string[];
 }
 
+// TASKS
+// Single source of truth: schema defines shape, type is derived from it.
 export const TaskSchema = z.object({
 	id: z.string(),
-	level: z.number(),
-	striketrough: z.boolean(),
+	level: z.number(),           // display only, not in clickup
+	striketrough: z.boolean(),   // internal
 	name: z.string(),
-	color: z.any(), //TODO: this probably fine? right?
+	color: z.string(),           // display only, not in clickup
 	completed: z.boolean(),
 	parent: z.string().optional(),
-	top_level_parent: z.string().optional(),
+	topLevelParent: z.string().optional(),
+	startDate: z.number().nullable(),
+	dueDate: z.number().nullable(),
 });
+
+export type Task = z.infer<typeof TaskSchema>;
+
+export function createTask(
+	id: string,
+	level: number,
+	name: string,
+	striketrough: boolean,
+	completed: boolean,
+	color: Color = Colors.default,
+	startDate: number | null = null,
+	dueDate: number | null = null,
+): Task {
+	return { id, level, name, striketrough, completed, color, startDate, dueDate };
+}
+
+export function taskToString(task: Task): string {
+	//TODO: for now flags toString this way. in future list members that are flags and
+	// iterate trough them? maybe serialize some info to yaml? idk?
+	const indent = "\t".repeat(task.level);
+	let content = `${indent} - `;
+	content += task.completed ? "[x] " : "[ ] ";
+	content += `${task.name}`;
+
+	// Dynamic field serialization — keys must match Task/TaskSchema field names exactly
+	const fields: Record<string, unknown> = {
+		id: task.id,
+		parent: task.parent,
+		//		topLevelParent: task.topLevelParent,
+		dueDate: task.dueDate,
+		startDate: task.startDate,
+	};
+	for (const [key, value] of Object.entries(fields)) {
+		if (value !== undefined && value !== null && value !== "" && value !== 0) {
+			content += ` [${key}:${value}]`;
+		}
+	}
+
+	const displayContent = task.striketrough ? `~~${content} ~~` : content;
+	if (task.color) {
+		return `<span style = "color:${task.color};white-space:pre" > ${displayContent} </span>`;
+	}
+	return displayContent;
+}
+
+export function tasksToString(tasks: Task[]): string {
+	return tasks.map(taskToString).join("\n");
+}
 
 export const ListSchema = z.object({
 	id: z.number(),
@@ -54,90 +106,31 @@ export const TeamSchema = z.object({
 	spaces: z.array(SpaceSchema),
 });
 
+export type Team = z.infer<typeof TeamSchema>;
+export type Space = z.infer<typeof SpaceSchema>;
+export type Folder = z.infer<typeof FolderSchema>;
+export type List = z.infer<typeof ListSchema>;
 
-export interface Team {
-	id: string;
-	name: string;
-	spaces: Space[];
+// Schema for parsing lexer flags — values arrive as strings, coerce numeric fields
+export const TaskFlagsSchema = TaskSchema.partial().extend({
+	startDate: z.coerce.number().nullable().optional(),
+	dueDate: z.coerce.number().nullable().optional(),
+});
+
+const TASK_EXCLUDE_FROM_MATCH_CLICKUP: readonly (keyof Task)[] = ["color", "level", "topLevelParent"];
+
+const TASK_COMPARE_KEYS = (Object.keys(TaskSchema.shape) as (keyof Task)[])
+	.filter(k => !TASK_EXCLUDE_FROM_MATCH_CLICKUP.includes(k));
+
+
+//TODO: for now just for dueDate.
+function normalizeField(key: keyof Task, value: Task[keyof Task]): unknown {
+	if (key === "dueDate" || key === "startDate") return value || null;
+	return value;
 }
 
-export interface Space {
-	id: string;
-	name: string;
-	folders: Folder[];
-}
-
-export interface Folder {
-	id: string;
-	name: string;
-	orderIndex: number;
-	taskCount: string; //TODO: check if really string or if number is good?
-	lists: List[];
-}
-
-// LISTS
-export interface List {
-	id: number;
-	name: string;
-	orderIndex: number;
-	tasks: Task[];
-}
-
-// TASKS
-export class Task {
-	id: string;
-	level: number; // used in display. not in clickup
-	striketrough: boolean	// Internal
-	name: string;
-	color: Color; // used in display. not in clickup
-	completed: boolean;
-	parent?: string;
-	topLevelParent?: string;
-	startDate: number;
-	dueDate: number;
-
-
-	constructor(id: string, level: number, name: string, color: Color = Colors.default, striketrough: boolean, completed: boolean) {
-		this.id = id;
-		this.level = level;
-		this.name = name;
-		this.color = color;
-		this.striketrough = striketrough;
-		this.completed = completed;
-	}
-
-	toString(): string {
-		//TODO: for now flags toString this way. in future list members that are flags and
-		// iterate trough them? maybe serialize some info to yaml? idk?
-		const indent = "\t".repeat(this.level);
-		let content = `${indent} - `;
-		content += this.completed ? "[x] " : "[ ] ";
-		content += `${this.name}`;
-
-		// Dynamic field serialization
-		const fields: Record<string, any> = {
-			id: this.id,
-			parent: this.parent,
-			//		topLevelParent: this.topLevelParent,
-			due: this.dueDate,
-			start: this.startDate,
-		};
-		for (const [key, value] of Object.entries(fields)) {
-			if (value !== undefined && value !== null && value !== "" && value !== 0) {
-				content += ` [${key}:${value}]`;
-			}
-		}
-
-		const displayContent = this.striketrough ? `~~${content} ~~` : content;
-		if (this.color) {
-			return `<span style = "color:${this.color};white-space:pre" > ${displayContent} </span>`;
-		}
-		return displayContent;
-	}
-}
-
-export function tasksToString(tasks: Task[]): string {
-	return tasks.map(t => t.toString()).join("\n");
+export function taskMatch(t1: Task, t2: Task): boolean {
+	return TASK_COMPARE_KEYS.every(k => normalizeField(k, t1[k]) === normalizeField(k, t2[k]));
 }
 
 

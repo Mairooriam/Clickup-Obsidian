@@ -5,7 +5,7 @@ import { ClickupTeamToTeam, ClickupSpaceToSpace, ClickupFolderToFolder } from ".
 import { _Clickup_CreateTask } from "./types/createTask";
 import { _Clickup_Space, _Clickup_Spaces } from "./types/getSpaces";
 import { _Clickup_Folder, _Clickup_Folders } from "./types/getFolders";
-import { Folder, List, Space, Task, Team, TaskSchema, StatusMapping, User } from "../types";
+import { Folder, List, Space, Task, Team, StatusMapping, User } from "../types";
 import { _Clickup_Teams } from "./types/getTeams";
 import { IApi } from "../IApi";
 import { AuthError } from "./../../utils/error.js";
@@ -169,9 +169,13 @@ export class ClickupApi implements IApi {
 	public async updateTask(task_id: string, task: Task): Promise<any> {
 		const mapping = this.getStatusMappingOrThrow();
 		const url = `task/${task_id}`;
-		const parsed = TaskSchema.pick({ name: true, parent: true }).partial().parse(task);
-		const payload: Record<string, any> = { ...parsed };
-		payload.status = task.completed ? mapping.completedStatus : mapping.activeStatus;
+		const payload: Record<string, unknown> = {
+			status: task.completed ? mapping.completedStatus : mapping.activeStatus,
+			...(task.name !== undefined && { name: task.name }),
+			...(task.parent !== undefined && { parent: task.parent }),
+			...(task.dueDate !== undefined && { due_date: task.dueDate, due_date_time: task.dueDate !== null }),
+			...(task.startDate !== undefined && { start_date: task.startDate, start_date_time: task.startDate !== null }),
+		};
 		console.log("payload", payload);
 		const response = await this.fetcher<any>(url, {
 			method: "PUT",

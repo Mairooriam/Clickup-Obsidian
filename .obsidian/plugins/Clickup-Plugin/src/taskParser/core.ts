@@ -1,5 +1,4 @@
-import { Task } from "./api/types.js";
-import { TaskSchema } from "./api/types.js";
+import { Task, taskMatch, taskToString } from "./api/types.js";
 import { generateId } from "./utils/id.js";
 import { Lexer } from "./lexer.js";
 import { Parser } from "./parser.js";
@@ -161,20 +160,24 @@ export function setAllTasksColor(md: string, color: Color): string {
 export async function processDiffToPost(md: string, targetId: number, api: ApiService): Promise<string> {
 	console.time("push-new:parse-local");
 	const local_cache = TaskCache.fromMarkdown(md);
+	Logger.log("core", "local_cache", local_cache);
+	console.log(local_cache);
 	console.timeEnd("push-new:parse-local");
 
-	console.time("push-new:get-remote");
 
+	console.time("push-new:get-remote");
 	const [err, remote_tasks] = await catchError(api.getTasks(targetId));
 	if (err) {
 		return "";
 	}
 
 	let remote = TaskCache.fromApi(remote_tasks);
+	Logger.log("core", "remote: ", remote);
 	console.timeEnd("push-new:get-remote");
 
 	console.time("push-new:diff");
 	let diff = cacheGenerateDiff(local_cache, remote);
+	Logger.log("core", "Diff: ", diff);
 	console.timeEnd("push-new:diff");
 	// ----------------- TO POST --------------------
 	// NOTE: they wont have parent and it wont wait for response
@@ -194,7 +197,7 @@ export async function processDiffToPost(md: string, targetId: number, api: ApiSe
 				console.timeEnd(label);
 				idMap.set(String(t.id), String(response.id));
 			} else {
-				Logger.error("taskParser.index", "Failed to fetch create task. skipping.", t.toString());
+				Logger.error("taskParser.index", "Failed to fetch create task. skipping.", taskToString(t));
 			}
 		}));
 		console.timeEnd("push-new:create-remote");
@@ -211,7 +214,7 @@ export async function processDiffToPost(md: string, targetId: number, api: ApiSe
 					//TODO: handle response?
 					const [err, response] = await catchError(api.updateTaskParent(realId, realParentId));
 					if (err) {
-						Logger.error("taskParser.index", "Failed to update task parent. Skipping.", t.toString());
+						Logger.error("taskParser.index", "Failed to update task parent. Skipping.", taskToString(t));
 					}
 				}
 			});
@@ -237,7 +240,7 @@ export async function processDiffToPost(md: string, targetId: number, api: ApiSe
 			//TODO: handle response?
 			const [err, response] = await catchError(api.updateTask(t.id, t));
 			if (err) {
-				Logger.error("taskParser.index", "Failed to update task. Skipping.", t.toString());
+				Logger.error("taskParser.index", "Failed to update task. Skipping.", taskToString(t));
 			}
 			console.timeEnd(label);
 		}));
@@ -254,7 +257,7 @@ export async function processDiffToPost(md: string, targetId: number, api: ApiSe
 			console.time(label);
 			const [err, response] = await catchError(api.deleteTask(t.id));
 			if (err) {
-				Logger.error("taskParser.index", "Failed to deleteTask. Skipping", t.toString());
+				Logger.error("taskParser.index", "Failed to deleteTask. Skipping", taskToString(t));
 			}
 			console.timeEnd(label);
 			local_cache.removeNode(t.id);
@@ -267,24 +270,15 @@ export async function processDiffToPost(md: string, targetId: number, api: ApiSe
 	return local_cache.toString();
 }
 
-
-// tells whether two tasks are the same
-export function taskMatch(t1: Task, t2: Task): boolean {
-	if (t1.name !== t2.name) return false;
-	if (t1.id !== t2.id) return false;
-	if (t1.parent !== t2.parent) return false;
-	return true;
-}
-
 //TODO: rework to use maps?
 export interface cacheMatchResult {
 	match: boolean;
 	toPost: Task[];
 	toPut: Task[];
-	toDelete: Task[]; // remote only — NOTE: just placeholder for now
+	toDelete: Task[];
 }
 
-function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResult {
+export function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResult {
 	const result: cacheMatchResult = { match: true, toPost: [], toPut: [], toDelete: [] };
 
 	const compareNode = (localTask: Task): void => {
@@ -300,10 +294,6 @@ function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResul
 			}
 			return;
 		}
-		if (remoteTask && localTask.completed !== remoteTask.completed) {
-			result.match = false;
-			result.toPut.push(localTask);
-		}
 
 		if (!remoteTask) {
 			// Exists locally but not remotely → POST
@@ -314,6 +304,8 @@ function cacheGenerateDiff(local: TaskCache, remote: TaskCache): cacheMatchResul
 		}
 
 		if (!taskMatch(localTask, remoteTask)) {
+			console.log(localTask);
+			console.log(remoteTask);
 			// Exists in both but different → PUT
 			result.match = false;
 			result.toPut.push(localTask);

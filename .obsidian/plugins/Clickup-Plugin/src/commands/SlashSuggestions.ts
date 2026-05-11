@@ -1,7 +1,7 @@
 import MyPlugin from "main";
 import { App, Editor, EditorPosition, EditorSuggest, EditorSuggestContext, EditorSuggestTriggerInfo, MarkdownView, TFile } from "obsidian";
 import { openFlatpickrTest } from "../ui/FlatpickrTest";
-import { Task, TaskParser } from "taskParser";
+import { Task, TaskParser, taskToString } from "taskParser";
 import { Logger } from "taskParser/utils/logger";
 
 type SlashItem = { label: string; run: (editor: Editor, start: EditorPosition) => void };
@@ -75,7 +75,7 @@ function makeSlashItems(app: App): SlashItem[] {
 				   task.dueDate = date;
 				   const lineNum = pos.line;
 				   const lineText = editor.getLine(lineNum);
-				   editor.replaceRange(task.toString(), { line: lineNum, ch: 0 }, { line: lineNum, ch: lineText.length });
+				   editor.replaceRange(taskToString(task), { line: lineNum, ch: 0 }, { line: lineNum, ch: lineText.length });
 				   console.log("[SlashCmd] due date set:", date);
 			});
 		}),
