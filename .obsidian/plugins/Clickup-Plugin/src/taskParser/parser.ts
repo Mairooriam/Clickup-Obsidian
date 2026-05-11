@@ -6,6 +6,7 @@ import { generateId } from "./utils/id.js";
 import { Color, Colors, toColor } from "./utils/colors.js";
 import { Logger } from "./utils/logger.js";
 
+//TODO: rethink this. terrible.
 function taskFromToken(id: string, level: number, name: string, color: Color, striketrough: boolean, completed: boolean, flags?: Record<string, string>): Task {
 	const task = createTask(id, level, name, striketrough, completed, color);
 	if (flags) {

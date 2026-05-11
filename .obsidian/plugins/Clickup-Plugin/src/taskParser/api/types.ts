@@ -111,7 +111,7 @@ export type Space = z.infer<typeof SpaceSchema>;
 export type Folder = z.infer<typeof FolderSchema>;
 export type List = z.infer<typeof ListSchema>;
 
-// Schema for parsing lexer flags — values arrive as strings, coerce numeric fields
+//TODO: Get rid of this re think parser
 export const TaskFlagsSchema = TaskSchema.partial().extend({
 	startDate: z.coerce.number().nullable().optional(),
 	dueDate: z.coerce.number().nullable().optional(),
